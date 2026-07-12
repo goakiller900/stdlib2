@@ -32,9 +32,9 @@ local floor = math.floor
 -- @tparam[opt=false] boolean eight_way
 -- @treturn defines.direction
 function Orientation.to_direction(orientation, eight_way)
-    local ways = eight_way and 16 or 8
-    local mod = eight_way and 2 or 4
-    return floor(orientation * ways + 0.5) % ways * mod
+    local ways = eight_way and 8 or 4
+    local step = eight_way and 2 or 4
+    return floor(orientation * ways + 0.5) % ways * step
 end
 
 --- Returns the opposite orientation.

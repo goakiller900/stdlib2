@@ -6,7 +6,7 @@ local table = require('__stdlib2-continued__/stdlib/utils/table')
 describe('Recipe', function()
 
     before_each(function()
-        require('faketorio/dataloader')
+        require('spec/setup/data').reload()
         Recipe = require('__stdlib2-continued__/stdlib/data/recipe')
         Raw = _G["data"].raw["recipe"]
         Rawtech = _G["data"].raw["technology"]["steel-processing"]
@@ -76,11 +76,11 @@ describe('Recipe', function()
     describe(':change_category', function()
 
         it('should change the category if it exists', function()
-            assert.same(nil, _G["data"].raw.recipe["stone-furnace"].category)
+            assert.is_nil(_G["data"].raw.recipe["stone-furnace"].categories)
             Recipe("stone-furnace"):change_category("hand-held")
-            assert.same(nil, _G["data"].raw.recipe["stone-furnace"].category)
+            assert.is_nil(_G["data"].raw.recipe["stone-furnace"].categories)
             Recipe("stone-furnace"):change_category("advanced-crafting")
-            assert.same("advanced-crafting", _G["data"].raw.recipe["stone-furnace"].category)
+            assert.same({"advanced-crafting"}, _G["data"].raw.recipe["stone-furnace"].categories)
         end)
     end)
 
