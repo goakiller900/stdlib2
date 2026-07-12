@@ -1,19 +1,18 @@
-name: Build Factorio mod package
+name: Build and release Factorio mod
 
 on:
+  pull_request:
   push:
     branches:
-      - master
-    tags:
-      - 'v[0-9]*'
-      - '[0-9]*'
-  pull_request:
-    branches:
-      - master
+      - "**"
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: factorio-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   package:
@@ -23,6 +22,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Install packaging tools
         shell: bash
@@ -44,6 +45,12 @@ jobs:
           package="${name}_${version}"
           archive="${package}.zip"
           checksum="${archive}.sha256"
+          tag="v${version}"
+
+          ref_name="${GITHUB_REF_NAME}"
+          branch_slug="$(printf '%s' "${ref_name}" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//' | cut -c1-80)"
+          branch_slug="${branch_slug:-branch}"
+          short_sha="${GITHUB_SHA:0:7}"
 
           if [[ ! "${name}" =~ ^[A-Za-z0-9_-]+$ ]]; then
             echo "::error::Invalid Factorio mod name in info.json: ${name}"
@@ -55,14 +62,6 @@ jobs:
             exit 1
           fi
 
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            tag_version="${GITHUB_REF_NAME#v}"
-            if [[ "${tag_version}" != "${version}" ]]; then
-              echo "::error::Tag ${GITHUB_REF_NAME} does not match info.json version ${version}."
-              exit 1
-            fi
-          fi
-
           {
             echo "name=${name}"
             echo "version=${version}"
@@ -70,10 +69,16 @@ jobs:
             echo "package=${package}"
             echo "archive=${archive}"
             echo "checksum=${checksum}"
+            echo "tag=${tag}"
+            echo "branch_name=${ref_name}"
+            echo "branch_slug=${branch_slug}"
+            echo "branch_tag=branch-${branch_slug}"
+            echo "short_sha=${short_sha}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "Package folder: ${package}/"
           echo "Archive name:  ${archive}"
+          echo "Stable tag:   ${tag}"
 
       - name: Build Factorio-compatible ZIP
         shell: bash
@@ -171,6 +176,90 @@ jobs:
           echo "Verified ${ARCHIVE}"
           unzip -l "${archive_path}" | tail -n 5
 
+      - name: Create or update branch prerelease
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref != 'refs/heads/master' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOD_TITLE: ${{ steps.meta.outputs.title }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          BRANCH_NAME: ${{ steps.meta.outputs.branch_name }}
+          BRANCH_TAG: ${{ steps.meta.outputs.branch_tag }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          ARCHIVE: dist/${{ steps.meta.outputs.archive }}
+          CHECKSUM: dist/${{ steps.meta.outputs.checksum }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "${BRANCH_TAG}" >/dev/null 2>&1; then
+            gh release delete "${BRANCH_TAG}" --yes --cleanup-tag
+          elif git ls-remote --exit-code --tags origin "refs/tags/${BRANCH_TAG}" >/dev/null 2>&1; then
+            git push origin ":refs/tags/${BRANCH_TAG}"
+          fi
+
+          gh release create "${BRANCH_TAG}" "${ARCHIVE}" "${CHECKSUM}" \
+            --target "${GITHUB_SHA}" \
+            --prerelease \
+            --title "${MOD_TITLE} ${VERSION} — ${BRANCH_NAME} (${SHORT_SHA})" \
+            --notes "Automatic test build from branch \`${BRANCH_NAME}\` at commit \`${GITHUB_SHA}\`. This is not a stable release."
+
+      - name: Create or prepare immutable GitHub release
+        if: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOD_TITLE: ${{ steps.meta.outputs.title }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          ARCHIVE: dist/${{ steps.meta.outputs.archive }}
+          CHECKSUM: dist/${{ steps.meta.outputs.checksum }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            tag_sha="$(git rev-list -n 1 "${TAG}")"
+
+            if gh release view "${TAG}" >/dev/null 2>&1; then
+              rm -rf /tmp/existing-release
+              mkdir -p /tmp/existing-release
+
+              if ! gh release download "${TAG}" \
+                --pattern "$(basename "${ARCHIVE}")" \
+                --dir /tmp/existing-release; then
+                echo "::error::The existing ${TAG} release does not contain $(basename "${ARCHIVE}")."
+                exit 1
+              fi
+
+              existing_archive="/tmp/existing-release/$(basename "${ARCHIVE}")"
+              built_digest="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+              existing_digest="$(sha256sum "${existing_archive}" | awk '{print $1}')"
+
+              if [[ "${built_digest}" != "${existing_digest}" ]]; then
+                echo "::warning::The repository differs from the immutable ${TAG} release. Increase info.json version before releasing changed mod contents."
+              else
+                echo "Existing ${TAG} release contains the identical mod archive."
+              fi
+
+              cp "${existing_archive}" "${ARCHIVE}"
+              printf '%s  %s\n' "${existing_digest}" "$(basename "${ARCHIVE}")" > "${CHECKSUM}"
+            elif [[ "${tag_sha}" == "${GITHUB_SHA}" ]]; then
+              gh release create "${TAG}" "${ARCHIVE}" "${CHECKSUM}" \
+                --verify-tag \
+                --title "${MOD_TITLE} ${VERSION}" \
+                --generate-notes
+            else
+              echo "::error::${TAG} points to ${tag_sha}, not ${GITHUB_SHA}, and has no GitHub Release. Increase the version or repair the tag manually."
+              exit 1
+            fi
+          else
+            gh release create "${TAG}" "${ARCHIVE}" "${CHECKSUM}" \
+              --target "${GITHUB_SHA}" \
+              --title "${MOD_TITLE} ${VERSION}" \
+              --generate-notes
+          fi
+
       - name: Upload mod ZIP
         uses: actions/upload-artifact@v7
         with:
@@ -186,27 +275,3 @@ jobs:
           path: dist/${{ steps.meta.outputs.checksum }}
           archive: false
           if-no-files-found: error
-
-      - name: Create or update GitHub release
-        if: github.ref_type == 'tag'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TITLE: ${{ steps.meta.outputs.title }}
-          VERSION: ${{ steps.meta.outputs.version }}
-          ARCHIVE: ${{ steps.meta.outputs.archive }}
-          CHECKSUM: ${{ steps.meta.outputs.checksum }}
-        run: |
-          set -euo pipefail
-
-          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release create "${GITHUB_REF_NAME}" \
-              --verify-tag \
-              --generate-notes \
-              --title "${TITLE} ${VERSION}"
-          fi
-
-          gh release upload "${GITHUB_REF_NAME}" \
-            "dist/${ARCHIVE}" \
-            "dist/${CHECKSUM}" \
-            --clobber
