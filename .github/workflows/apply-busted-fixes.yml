@@ -1,0 +1,106 @@
+name: Apply Busted compatibility fixes
+
+on:
+  push:
+    branches:
+      - fix/busted-bootstrap
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/busted-bootstrap
+
+      - name: Apply Factorio 2.1 test fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected text not found in {path}: {old!r}')
+              file.write_text(text.replace(old, new), encoding='utf-8')
+
+          Path('spec/setup/factorio21.lua').write_text("""-- Adapt the historical stdlib test harness to Factorio 2.1 runtime globals.\nlocal direction = defines.direction\ndirection.north = 0\ndirection.northeast = 2\ndirection.east = 4\ndirection.southeast = 6\ndirection.south = 8\ndirection.southwest = 10\ndirection.west = 12\ndirection.northwest = 14\n\n_G.helpers = _G.helpers or {}\n_G.helpers.write_file = _G.helpers.write_file or function(...)\n    return _G.game.write_file(...)\nend\n\nreturn true\n""", encoding='utf-8')
+
+          Path('spec/setup/data.lua').write_text("""local DataFixture = {}\n\nfunction DataFixture.reload()\n    for module_name in pairs(package.loaded) do\n        if module_name == 'faketorio/dataloader' or module_name:match('^faketorio/raw/') then\n            package.loaded[module_name] = nil\n        end\n    end\n    _G.data = nil\n    return require('faketorio/dataloader')\nend\n\nreturn DataFixture\n""", encoding='utf-8')
+
+          replace(
+              'spec/setup/busted.lua',
+              "require('faketorio/require')\nrequire('faketorio/globals')\n\nreturn require('busted.runner')",
+              "require('faketorio/require')\nrequire('faketorio/globals')\nrequire('spec/setup/factorio21')\n\nreturn require('busted.runner')"
+          )
+
+          for path in Path('spec').rglob('*.lua'):
+              if path.as_posix() == 'spec/setup/data.lua':
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace(
+                  "require('faketorio/dataloader')",
+                  "require('spec/setup/data').reload()"
+              )
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          replace(
+              'stdlib/area/orientation.lua',
+              "    local ways = eight_way and 16 or 8\n    local mod = eight_way and 2 or 4\n    return floor(orientation * ways + 0.5) % ways * mod",
+              "    local ways = eight_way and 8 or 4\n    local step = eight_way and 2 or 4\n    return floor(orientation * ways + 0.5) % ways * step"
+          )
+
+          replace(
+              'stdlib/misc/config.lua',
+              "if type(path) ~= 'string' or string == '' then",
+              "if type(path) ~= 'string' or path == '' then"
+          )
+
+          replace(
+              'stdlib/utils/classes/unique_array.lua',
+              "if type(tab) == table and tab.__class == 'unique_array' then",
+              "if type(tab) == 'table' and tab.__class == 'unique_array' then"
+          )
+
+          Path('spec/area/direction_spec.lua').write_text("""require('spec/setup/busted')()\n\nlocal Direction = require('__stdlib2-continued__/stdlib/area/direction')\n\ndescribe('Direction Functions', function()\n    local d = defines.direction\n\n    describe('.next_direction', function()\n        local nd = Direction.next_direction\n\n        it('returns the next 4-way direction clockwise', function()\n            assert.same(d.east, nd(d.north))\n            assert.same(d.south, nd(d.east))\n            assert.same(d.west, nd(d.south))\n            assert.same(d.north, nd(d.west))\n        end)\n\n        it('returns the next 8-way direction clockwise', function()\n            assert.same(d.northeast, nd(d.north, false, true))\n            assert.same(d.east, nd(d.northeast, false, true))\n            assert.same(d.north, nd(d.northwest, false, true))\n        end)\n\n        it('returns the next 4-way direction counter-clockwise', function()\n            assert.same(d.west, nd(d.north, true))\n            assert.same(d.south, nd(d.west, true))\n            assert.same(d.east, nd(d.south, true))\n            assert.same(d.north, nd(d.east, true))\n        end)\n\n        it('returns the next 8-way direction counter-clockwise', function()\n            assert.same(d.northwest, nd(d.north, true, true))\n            assert.same(d.west, nd(d.northwest, true, true))\n            assert.same(d.north, nd(d.northeast, true, true))\n        end)\n    end)\n\n    describe('.direction_to_orientation', function()\n        it('converts a direction to an orientation', function()\n            local dto = Direction.direction_to_orientation\n            assert.same(0, dto(d.north))\n            assert.same(.25, dto(d.east))\n            assert.same(.5, dto(d.south))\n            assert.same(.75, dto(d.west))\n            assert.same(.125, dto(d.northeast))\n            assert.same(.375, dto(d.southeast))\n            assert.same(.625, dto(d.southwest))\n            assert.same(.875, dto(d.northwest))\n        end)\n    end)\n\n    describe('.opposite_direction', function()\n        it('returns the opposite direction', function()\n            local opposite = Direction.opposite_direction\n            assert.same(d.west, opposite(d.east))\n            assert.same(d.southwest, opposite(d.northeast))\n        end)\n    end)\n\n    describe('.orientation_to_4way', function()\n        it('rounds an orientation to a 4-way direction', function()\n            assert.same(d.north, Direction.orientation_to_4way(.124))\n            assert.same(d.east, Direction.orientation_to_4way(.125))\n            assert.same(d.south, Direction.orientation_to_4way(.624))\n            assert.same(d.north, Direction.orientation_to_4way(.875))\n        end)\n    end)\n\n    describe('.orientation_to_8way', function()\n        it('rounds an orientation to an 8-way direction', function()\n            assert.same(d.north, Direction.orientation_to_8way(.06))\n            assert.same(d.northeast, Direction.orientation_to_8way(.0625))\n            assert.same(d.southwest, Direction.orientation_to_8way(.628))\n            assert.same(d.south, Direction.orientation_to_8way(.501))\n        end)\n    end)\nend)\n""", encoding='utf-8')
+
+          replace(
+              'spec/area/position_spec.lua',
+              """            assert.same(0, mid:direction_to(b))\n            assert.same(2, mid:direction_to(c))\n            assert.same(4, mid:direction_to(d))\n            assert.same(6, mid:direction_to(e))\n            local f, g, h, i = P(1, -1), P(1, -1), P(-1, 1), P(-1, -1)\n            assert.same(6, mid:direction_to(f))\n            assert.same(6, mid:direction_to(g))\n            assert.same(2, mid:direction_to(h))\n            assert.same(6, mid:direction_to(i))""",
+              """            assert.same(0, mid:direction_to(b))\n            assert.same(4, mid:direction_to(c))\n            assert.same(8, mid:direction_to(d))\n            assert.same(12, mid:direction_to(e))\n            local f, g, h, i = P(1, -1), P(1, -1), P(-1, 1), P(-1, -1)\n            assert.same(12, mid:direction_to(f))\n            assert.same(12, mid:direction_to(g))\n            assert.same(4, mid:direction_to(h))\n            assert.same(12, mid:direction_to(i))"""
+          )
+
+          replace(
+              'spec/area/position_spec.lua',
+              """            assert.same(0, mid:complex_direction_to(n, true))\n            assert.same(1, mid:complex_direction_to(ne, true))\n            assert.same(2, mid:complex_direction_to(e, true))\n            assert.same(3, mid:complex_direction_to(se, true))\n            assert.same(4, mid:complex_direction_to(s, true))\n            assert.same(5, mid:complex_direction_to(sw, true))\n            assert.same(6, mid:complex_direction_to(w, true))\n            assert.same(7, mid:complex_direction_to(nw, true))\n\n            assert.same(2, mid:complex_direction_to(ne, false))\n            assert.same(4, mid:complex_direction_to(se, false))\n            assert.same(6, mid:complex_direction_to(sw, false))\n            assert.same(0, mid:complex_direction_to(nw, false))""",
+              """            assert.same(0, mid:complex_direction_to(n, true))\n            assert.same(2, mid:complex_direction_to(ne, true))\n            assert.same(4, mid:complex_direction_to(e, true))\n            assert.same(6, mid:complex_direction_to(se, true))\n            assert.same(8, mid:complex_direction_to(s, true))\n            assert.same(10, mid:complex_direction_to(sw, true))\n            assert.same(12, mid:complex_direction_to(w, true))\n            assert.same(14, mid:complex_direction_to(nw, true))\n\n            assert.same(4, mid:complex_direction_to(ne, false))\n            assert.same(8, mid:complex_direction_to(se, false))\n            assert.same(12, mid:complex_direction_to(sw, false))\n            assert.same(0, mid:complex_direction_to(nw, false))"""
+          )
+
+          replace(
+              'spec/data/recipe_spec.lua',
+              """            assert.same(nil, _G[\"data\"].raw.recipe[\"stone-furnace\"].category)\n            Recipe(\"stone-furnace\"):change_category(\"hand-held\")\n            assert.same(nil, _G[\"data\"].raw.recipe[\"stone-furnace\"].category)\n            Recipe(\"stone-furnace\"):change_category(\"advanced-crafting\")\n            assert.same(\"advanced-crafting\", _G[\"data\"].raw.recipe[\"stone-furnace\"].category)""",
+              """            assert.is_nil(_G[\"data\"].raw.recipe[\"stone-furnace\"].categories)\n            Recipe(\"stone-furnace\"):change_category(\"hand-held\")\n            assert.is_nil(_G[\"data\"].raw.recipe[\"stone-furnace\"].categories)\n            Recipe(\"stone-furnace\"):change_category(\"advanced-crafting\")\n            assert.same({\"advanced-crafting\"}, _G[\"data\"].raw.recipe[\"stone-furnace\"].categories)"""
+          )
+          PY
+
+      - name: Commit generated fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No compatibility fixes left to apply."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add spec stdlib
+          git commit -m "Update Busted suite for Factorio 2.1"
+          git push origin HEAD:fix/busted-bootstrap
