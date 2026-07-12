@@ -1,24 +1,38 @@
-name: busted
+name: Busted tests
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+      - fix/busted-workflow
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-    - uses: leafo/gh-actions-lua@v5
-      with:
-        luaVersion: "5.2"
+      - name: Install Lua 5.2 and LuaRocks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.2 liblua5.2-dev luarocks
 
-    - uses: leafo/gh-actions-luarocks@v2
+      - name: Install test dependencies
+        run: |
+          sudo luarocks --lua-version=5.2 install busted
+          sudo luarocks --lua-version=5.2 install faketorio
 
-    - name: setup
-      run: |
-        luarocks install busted
-
-    - name: busted
-      run: |
-        busted -o utfTerminal
+      - name: Run Busted test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(luarocks --lua-version=5.2 path)"
+          busted -o utfTerminal
