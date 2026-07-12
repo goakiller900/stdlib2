@@ -112,7 +112,7 @@ jobs:
             [[ -n "${pattern}" ]] && excludes+=(--exclude="${pattern}")
           done < <(jq -r '.package.ignore[]?' info.json)
 
-          rsync -a "${excludes[@]}" ./ "dist/${PACKAGE}/"
+          rsync -a --prune-empty-dirs "${excludes[@]}" ./ "dist/${PACKAGE}/"
 
           test -f "dist/${PACKAGE}/info.json"
           test -d "dist/${PACKAGE}/stdlib"
@@ -156,9 +156,15 @@ jobs:
             exit 1
           fi
 
-          if unzip -Z1 "${archive_path}" | grep -Eq \
-            "^${PACKAGE}/(\.git|\.github|spec|tools|doc|wiki|faketorio)(/|$)"; then
+          offending_paths="$(
+            unzip -Z1 "${archive_path}" \
+              | grep -E "^${PACKAGE}/(\.git|\.github|spec|tools|doc|wiki|faketorio)(/|$)" \
+              || true
+          )"
+
+          if [[ -n "${offending_paths}" ]]; then
             echo "::error::Development-only files were included in the mod archive."
+            printf '%s\n' "${offending_paths}"
             exit 1
           fi
 
