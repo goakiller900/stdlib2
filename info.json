@@ -1,6 +1,6 @@
 {
   "name": "stdlib2-continued",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "factorio_version": "2.1",
   "title": "Factorio Standard Library 2.1 Continued",
   "author": "Afforess, Jackie P. Mueller, Goakiller900",
@@ -16,7 +16,8 @@
       "spec/**",
       "tools/**",
       "doc/**",
-      "faketorio/**"
+      "faketorio/**",
+      ".publish/**"
     ]
   }
 }
