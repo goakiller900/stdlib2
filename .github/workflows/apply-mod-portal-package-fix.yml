@@ -1,3 +1,4 @@
+# Second branch commit triggers this already-installed workflow.
 name: Apply Mod Portal packaging fix
 
 on:
