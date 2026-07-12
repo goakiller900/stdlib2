@@ -21,14 +21,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Lua 5.2 and LuaRocks
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes lua5.2 liblua5.2-dev luarocks
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
+            lua5.2 liblua5.2-dev luarocks >/tmp/apt-install.log 2>&1 || {
+              cat /tmp/apt-install.log
+              exit 1
+            }
 
       - name: Install test dependencies
+        shell: bash
         run: |
-          sudo luarocks --lua-version=5.2 install busted
-          sudo luarocks --lua-version=5.2 install faketorio
+          set -euo pipefail
+          sudo luarocks --lua-version=5.2 install busted >/tmp/busted-install.log 2>&1 || {
+            cat /tmp/busted-install.log
+            exit 1
+          }
+          sudo luarocks --lua-version=5.2 install faketorio >/tmp/faketorio-install.log 2>&1 || {
+            cat /tmp/faketorio-install.log
+            exit 1
+          }
 
       - name: Run Busted test suite
         shell: bash
