@@ -67,7 +67,7 @@ local function create_class(tab)
 end
 
 local function unique_or_new(tab)
-    if type(tab) == table and tab.__class == 'unique_array' then
+    if type(tab) == 'table' and tab.__class == 'unique_array' then
         return tab
     else
         return M.new(tab)
