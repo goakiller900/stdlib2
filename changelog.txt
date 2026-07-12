@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.1
+Date: 2026-07-12
+  Bugfixes:
+    - Migrated script-output helpers from removed game methods to the Factorio 2.1 helpers API.
+    - Updated diagnostic storage dumps from the removed global table to storage.
+    - Updated statistics exports to use the Factorio 2.1 per-surface statistics methods.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Date: 2026-07-12
   Changes:
