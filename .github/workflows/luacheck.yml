@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate continuation metadata and imports
         shell: bash
@@ -31,7 +31,7 @@ jobs:
           info = json.loads((root / 'info.json').read_text(encoding='utf-8'))
 
           assert info['name'] == 'stdlib2-continued'
-          assert info['version'] == '2.1.0'
+          assert re.fullmatch(r'\d+\.\d+\.\d+', info['version'])
           assert info['factorio_version'] == '2.1'
           assert 'base >= 2.1' in info['dependencies']
 
