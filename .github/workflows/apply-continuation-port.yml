@@ -56,8 +56,12 @@ jobs:
               return write_if_changed(path, text.replace(old, new, 1))
           '''
           text = text[:start] + replacement + text[end:]
+          legacy_readme_line = (
+              'Mods using the former `' + '__' +
+              'stdlib2__/` path must update their imports when switching to this continuation.'
+          )
           text = text.replace(
-              'Mods using the former `__stdlib2__/` path must update their imports when switching to this continuation.',
+              legacy_readme_line,
               'Mods using the former stdlib2 import root must update their imports when switching to this continuation.',
           )
           path.write_text(text, encoding='utf-8', newline='\n')
