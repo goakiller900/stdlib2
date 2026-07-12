@@ -1,0 +1,49 @@
+name: Apply final area test fix
+
+on:
+  push:
+    branches:
+      - fix/busted-bootstrap
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/busted-bootstrap
+
+      - name: Update direction constants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('spec/area/area_spec.lua')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = {
+              'A.translate(a1, 1, 1):store()':
+                  'A.translate(a1, defines.direction.northeast, 1):store()',
+              'a1:recall():translate(5, 1)':
+                  'a1:recall():translate(defines.direction.southwest, 1)',
+          }
+
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Expected expression not found: {old}')
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add spec/area/area_spec.lua
+          git commit -m "Update area direction test for Factorio 2.1"
+          git push origin HEAD:fix/busted-bootstrap
