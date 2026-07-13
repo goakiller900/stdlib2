@@ -1,10 +1,9 @@
 {
 	"name": "kry_stdlib",
 	"author": "Afforess, Kryzeth",
-	"version": "2.2.0",
+	"version": "2.2.4",
 	"factorio_version": "2.1",
 	"title": "Kryzeth Standard Library",
-	"homepage": "https://github.com/kryzeth/kry_stdlib",
 	"description": "The only surviving fork of the Factorio Standard Library, which was a project to bring Factorio modders high-quality, commonly-required utilities and tools.",
 	"dependencies": [
 		"base"

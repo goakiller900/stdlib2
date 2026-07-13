@@ -1,11 +1,10 @@
---- The Core module loads some helper functions and globals useful in all stages
--- of a mods life cycle. All modules have an __index method into core.
--- @module Core
--- @usage local Core = require('__stdlib2__/stdlib/core')
-
 -- require global helper functions.
-require('__stdlib2__/stdlib/utils/globals')
+require('__kry_stdlib__/stdlib/utils/globals')
 
+--- The Core module loads some helper functions and globals useful in all stages
+--- of a mods life cycle. All modules have an __index method into core.
+--- @class StdLib.Core
+--- @usage local Core = require('__kry_stdlib__/stdlib/core')
 local Core = {
     _VERSION = '1.0.0',
     _DESCRIPTION = 'Factorio Lua Standard Library Project',
@@ -13,7 +12,7 @@ local Core = {
     _LICENSE = [[
         MIT LICENSE
 
-        Copyright (c) 2016, Afforess
+        Copyright (c) 2016 Afforess, 2024 Kuxynator
 
         Permission to use, copy, modify, and/or distribute this software for any
         purpose with or without fee is hereby granted, provided that the above
@@ -31,15 +30,15 @@ local Core = {
     __call = function(t, ...)
         return t:__call(...)
     end,
-    __config = require('__stdlib2__/stdlib/config')
+    __config = require('__kry_stdlib__/stdlib/config')
 }
 
-Core.Unique_Array = require('__stdlib2__/stdlib/utils/classes/unique_array')
+Core.Unique_Array = require('__kry_stdlib__/stdlib/utils/classes/unique_array')
 Core.String_Array = Core.Unique_Array
 
 --- Prints and logs the msg
--- @tparam string msg
--- @treturn boolean true if the message was printed to someone
+--- @param msg string
+--- @return boolean true if the message was printed to someone
 function Core.log_and_print(msg)
     if game and #game.connected_players > 0 then
         log(script.mod_name .. ':' .. msg)
@@ -47,6 +46,7 @@ function Core.log_and_print(msg)
         return true
     else
         log(msg)
+		return false
     end
 end
 

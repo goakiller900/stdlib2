@@ -3,11 +3,11 @@
 
 _ENV = _ENV or _G
 
-local config = require('__stdlib2__/stdlib/config')
+local config = require('__kry_stdlib__/stdlib/config')
 
-local Table = require('__stdlib2__/stdlib/utils/table')
-local Math = require('__stdlib2__/stdlib/utils/math')
-local String = require('__stdlib2__/stdlib/utils/string')
+local Table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
+local Math = require('__kry_stdlib__/stdlib/utils/math')  --[[@as StdLib.Utils.Math]]
+local String = require('__kry_stdlib__/stdlib/utils/string') --[[@as StdLib.Utils.String]]
 
 local STDLIB = {
     Math = Math,
@@ -36,7 +36,9 @@ local data_traceback = type(debug) == 'table' and debug.getinfo and function()
         if trace then
             level = level + 1
             if (trace.what == 'Lua' or trace.what == 'main') and not ignored[trace.name] then
-                local cur = trace.source:gsub('.*__stdlib2__', '__stdlib2__'):gsub('.*/Factorio%-Stdlib', '__stdlib2__')
+                local cur = trace.source
+					:gsub('.*__kry_stdlib__', '__kry_stdlib__')
+					--:gsub('.*/Factorio%-Stdlib', '__kry_stdlib__')
                 cur = cur .. ':' .. (trace.currentline or '0') .. ' in ' .. (trace.name or '???')
                 str[#str + 1] = cur
             end
@@ -53,21 +55,21 @@ end or function()
 end
 rawset(_ENV, 'data_traceback', data_traceback)
 
-local inspect = require('__stdlib2__/stdlib/vendor/inspect')
+local inspect = require('__kry_stdlib__/stdlib/vendor/inspect')
 rawset(_ENV, 'inspect', inspect)
 
 -- Defines Mutates
-require('__stdlib2__/stdlib/utils/defines/color')
-require('__stdlib2__/stdlib/utils/defines/anticolor')
-require('__stdlib2__/stdlib/utils/defines/lightcolor')
-require('__stdlib2__/stdlib/utils/defines/time')
+require('__kry_stdlib__/stdlib/utils/defines/color')
+require('__kry_stdlib__/stdlib/utils/defines/anticolor')
+require('__kry_stdlib__/stdlib/utils/defines/lightcolor')
+require('__kry_stdlib__/stdlib/utils/defines/time')
 
 --- Require a file that may not exist
--- @tparam string module path to the module
--- @tparam boolean suppress_all suppress all errors, not just file_not_found
--- @treturn mixed
+--- @param module string path to the module
+--- @param suppress_all boolean suppress all errors, not just file_not_found
+--- @return any
 local function prequire(module, suppress_all)
-    local ok, err = pcall(require, module)
+    local ok, err = pcall(require--[[@as fun(string)]], module)
     if ok then
         return err
     elseif not suppress_all and not err:find('^module .* not found') then
@@ -77,8 +79,8 @@ end
 rawset(_ENV, 'prequire', prequire)
 
 --- Temporarily removes __tostring handlers and calls tostring
--- @tparam mixed t object to call rawtostring on
--- @treturn string
+--- @param t any object to call rawtostring on
+--- @return string
 local function rawtostring(t)
     local m = getmetatable(t)
     if m then
@@ -94,10 +96,10 @@ end
 rawset(_ENV, 'rawtostring', rawtostring)
 
 --- Returns t if the expression is true. f if false
--- @tparam mixed exp The expression to evaluate
--- @tparam mixed t the true return
--- @tparam mixed f the false return
--- @treturn boolean
+--- @param exp any The expression to evaluate
+--- @param t any the true return
+--- @param f any the false return
+--- @return boolean
 local function inline_if(exp, t, f)
     if exp then
         return t
@@ -147,36 +149,36 @@ end
 
 --- load the stdlib into globals, by default it loads everything into an ALLCAPS name.
 -- Alternatively you can pass a dictionary of `[global names] -> [require path]`.
--- @tparam[opt] table files
+--- @param files table [opt]
 -- @usage
 -- STDLIB.create_stdlib_globals()
 function STDLIB.create_stdlib_globals(files)
     files =
         files or
         {
-            GAME = 'stdlib/game',
-            AREA = 'stdlib/area/area',
-            POSITION = 'stdlib/area/position',
-            TILE = 'stdlib/area/tile',
-            SURFACE = 'stdlib/area/surface',
-            CHUNK = 'stdlib/area/chunk',
-            COLOR = 'stdlib/utils/color',
-            ENTITY = 'stdlib/entity/entity',
+            GAME      = 'stdlib/game',
+            AREA      = 'stdlib/area/area',
+            POSITION  = 'stdlib/area/position',
+            TILE      = 'stdlib/area/tile',
+            SURFACE   = 'stdlib/area/surface',
+            CHUNK     = 'stdlib/area/chunk',
+            COLOR     = 'stdlib/utils/color',
+            ENTITY    = 'stdlib/entity/entity',
             INVENTORY = 'stdlib/entity/inventory',
-            RESOURCE = 'stdlib/entity/resource',
-            CONFIG = 'stdlib/misc/config',
-            LOGGER = 'stdlib/misc/logger',
-            QUEUE = 'stdlib/misc/queue',
-            EVENT = 'stdlib/event/event',
-            GUI = 'stdlib/event/gui',
-            PLAYER = 'stdlib/event/player',
-            FORCE = 'stdlib/event/force',
-            TABLE = 'stdlib/utils/table',
-            STRING = 'stdlib/utils/string',
-            MATH = 'stdlib/utils/math'
+            RESOURCE  = 'stdlib/entity/resource',
+            CONFIG    = 'stdlib/misc/config',
+            LOGGER    = 'stdlib/misc/logger',
+            QUEUE     = 'stdlib/misc/queue',
+            EVENT     = 'stdlib/event/event',
+            GUI       = 'stdlib/event/gui',
+            PLAYER    = 'stdlib/event/player',
+            FORCE     = 'stdlib/event/force',
+            TABLE     = 'stdlib/utils/table',
+            STRING    = 'stdlib/utils/string',
+            MATH      = 'stdlib/utils/math'
         }
     for glob, path in pairs(files) do
-        rawset(_ENV, glob, require('__stdlib2__/' .. (path:gsub('%.', '/')))) -- extra () required to emulate select(1)
+        rawset(_ENV, glob, require('__kry_stdlib__/' .. (path:gsub('%.', '/')))) -- extra () required to emulate select(1)
     end
 end
 
@@ -184,17 +186,17 @@ function STDLIB.create_stdlib_data_globals(files)
     files =
         files or
         {
-            RECIPE = 'stdlib/data/recipe',
-            ITEM = 'stdlib/data/item',
-            FLUID = 'stdlib/data/fluid',
-            ENTITY = 'stdlib/data/entity',
+            RECIPE     = 'stdlib/data/recipe',
+            ITEM       = 'stdlib/data/item',
+            FLUID      = 'stdlib/data/fluid',
+            ENTITY     = 'stdlib/data/entity',
             TECHNOLOGY = 'stdlib/data/technology',
-            CATEGORY = 'stdlib/data/category',
-            DATA = 'stdlib/data/data',
-            TABLE = 'stdlib/utils/table',
-            STRING = 'stdlib/utils/string',
-            MATH = 'stdlib/utils/math',
-            COLOR = 'stdlib/utils/color'
+            CATEGORY   = 'stdlib/data/category',
+            DATA       = 'stdlib/data/data',
+            TABLE      = 'stdlib/utils/table',
+            STRING     = 'stdlib/utils/string',
+            MATH       = 'stdlib/utils/math',
+            COLOR      = 'stdlib/utils/color'
         }
     STDLIB.create_stdlib_globals(files)
 end

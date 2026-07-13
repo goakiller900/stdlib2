@@ -1,8 +1,7 @@
+local Data = require('__kry_stdlib__/stdlib/data/data') --[[@as StdLib.Data]]
+
 --- Fluid
--- @classmod Data.Fluid
-
-local Data = require('__stdlib2__/stdlib/data/data')
-
+--- @class StdLib.Data.Fluid : StdLib.Data
 local Fluid = {
     __class = 'Fluid',
     __index = Data,

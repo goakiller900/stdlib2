@@ -1,26 +1,25 @@
---- Force global creation.
+local Event = require('__kry_stdlib__/stdlib/event/event')
+
+--- Force storage creation.
 -- <p>All new forces will be added to the `storage.forces` table.
 -- <p>This modules events should be registered after any other Init functions but before any scripts needing `storage.players`.
 -- <p>This modules can register the following events: `on_force_created`, and `on_forces_merging`.
--- @module Event.Force
--- @usage
--- local Force = require('__stdlib2__/stdlib/event/force').register_events()
--- -- inside your Init event Force.init() -- to properly handle any existing forces
-
-local Event = require('__stdlib2__/stdlib/event/event')
-
+--- @class StdLib.Event.Force
+--- @usage
+--- local Force = require('__kry_stdlib__/stdlib/event/force').register_events()
+--- -- inside your Init event Force.init() -- to properly handle any existing forces
 local Force = {
     __class = 'Force',
-    __index = require('__stdlib2__/stdlib/core'),
+    __index = require('__kry_stdlib__/stdlib/core'),
     _new_force_data = {}
 }
 setmetatable(Force, Force)
 
 local inspect = _ENV.inspect
 
-local Game = require('__stdlib2__/stdlib/game')
-local table = require('__stdlib2__/stdlib/utils/table')
-local merge_additional_data = require('__stdlib2__/stdlib/event/modules/merge_data')
+local Game = require('__kry_stdlib__/stdlib/game')
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
+local merge_additional_data = require('__kry_stdlib__/stdlib/event/modules/merge_data')
 local assert, type = assert, type
 
 -- return new default force object
@@ -45,11 +44,11 @@ function Force.additional_data(...)
 end
 
 --- Get `game.forces[name]` & `storage.forces[name]`, or create `storage.forces[name]` if it doesn't exist.
--- @tparam string|LuaForce force the force to get data for
--- @treturn LuaForce the force instance
--- @treturn table the force's storage data
+--- @param force string|LuaForce the force to get data for
+--- @return LuaForce #the force instance
+--- @return table #the force's storage data
 -- @usage
--- local Force = require('__stdlib2__/stdlib/event/force')
+-- local Force = require('__kry_stdlib__/stdlib/event/force')
 -- local force_name, force_data = Force.get("player")
 -- local force_name, force_data = Force.get(game.forces["player"])
 -- -- Returns data for the force named "player" from either a string or LuaForce object
@@ -60,7 +59,7 @@ function Force.get(force)
 end
 
 --- Merge a copy of the passed data to all forces in `storage.forces`.
--- @tparam table data a table containing variables to merge
+--- @param data table a table containing variables to merge
 -- @usage
 -- local data = {a = "abc", b = "def"}
 -- Force.add_data_all(data)
@@ -75,8 +74,8 @@ end
 
 --- Init or re-init a force or forces.
 -- Passing a `nil` event will iterate all existing forces.
--- @tparam[opt] string|table event table or a string containing force name
--- @tparam[opt=false] boolean overwrite the force data
+--- @param event nil|string|table [opt] table or a string containing force name
+--- @param overwrite boolean? [opt=false] the force data
 function Force.init(event, overwrite)
     storage.forces = storage.forces or {}
 
@@ -98,8 +97,8 @@ function Force.init(event, overwrite)
 end
 
 function Force.dump_data()
-    game.write_file(Force.get_file_path('Force/force_data.lua'), 'return ' .. inspect(Force._new_force_data, { longkeys = true, arraykeys = true }))
-    game.write_file(Force.get_file_path('Force/storage.lua'), 'return ' .. inspect(storage.forces or nil, { longkeys = true, arraykeys = true }))
+    helpers.write_file(script.mod_name .. '/Force/force_data.lua', 'return ' .. inspect(Force._new_force_data, { longkeys = true, arraykeys = true }))
+    helpers.write_file(script.mod_name .. '/Force/storage.lua', 'return ' .. inspect(storage.forces or nil, { longkeys = true, arraykeys = true }))
 end
 
 --- When forces are merged, just remove the original forces data

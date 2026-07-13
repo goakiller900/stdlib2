@@ -1,8 +1,7 @@
+local Data = require('__kry_stdlib__/stdlib/data/data')
+
 --- Technology
--- @classmod Data.Technology
-
-local Data = require('__stdlib2__/stdlib/data/data')
-
+--- @class StdLib.Data.Technology : StdLib.Data
 local Technology = {
     __class = 'Technology',
     __index = Data,
@@ -27,7 +26,7 @@ function Technology:add_effect(effect, unlock_type)
     end
 
     if self:is_valid('technology') then
-        local Recipe = require('__stdlib2__/stdlib/data/recipe')
+        local Recipe = require('__kry_stdlib__/stdlib/data/recipe')
         unlock_type = (not unlock_type and 'unlock-recipe') or unlock_type
         local r_name = type(effect) == 'table' and effect.name or effect
         if unlock_type == 'unlock-recipe' or not unlock_type then
@@ -80,7 +79,7 @@ end
 
 function Technology:add_pack(new_pack, count)
     if self:is_valid('technology') then
-        local Item = require('__stdlib2__/stdlib/data/item')
+        local Item = require('__kry_stdlib__/stdlib/data/item')
         if type(new_pack) == 'table' then
             count = new_pack[2] or 1
             new_pack = new_pack[1]
@@ -155,6 +154,69 @@ function Technology:remove_prereq(tech_name)
         end
     end
     return self
+end
+
+function Technology:replace_prereq(old_tech, new_tech)
+    if self:is_valid('technology') then
+		self:remove_prereq(old_tech)
+		self:add_prereq(new_tech)
+	end
+	return self
+end
+
+function Technology:copy_cost(tech_name)
+	local original = Technology(tech_name)
+    if self:is_valid('technology') and original:is_valid() then
+		if original.unit then	-- ensure this exists before referencing it
+			self.unit = table.deepcopy(original.unit)
+		else
+			log(self.name .. " has no science cost to copy.")
+			return false
+		end
+	end
+	return self
+end
+
+function Technology:multiply_cost(mult)
+    if self:is_valid('technology') then
+		if self.unit then	-- ensure this exists before referencing it
+			self.unit.count = mult*self.unit.count
+		else
+			log(self.name .. " has no science cost to multiply.")
+			return false
+		end
+	end
+	return self
+end
+
+function Technology:add_unlock(recipe)
+    if self:is_valid('technology') then
+        self.effects = self.effects or {}
+        table.insert(self.effects, {type = "unlock-recipe", recipe = recipe})
+    end
+end
+
+-- return a list of recipes that are unlocked by this technology.
+function Technology:get_recipes()
+    if self:is_valid('technology') and self.effects then
+        local recipes = {}
+		for _, effect in pairs(self.effects) do
+			if effect.type == "unlock-recipe" then
+				recipes[effect.recipe] = true
+			end
+		end
+		return recipes
+    end
+end
+
+function Technology:remove_unlock(recipe)
+	if self:is_valid('technology') then
+		for index, effect in pairs(self.effects) do
+			if effect.type == "unlock-recipe" and effect.recipe == recipe then
+				table.remove(self.effects, index)
+			end
+		end
+	end
 end
 
 return Technology

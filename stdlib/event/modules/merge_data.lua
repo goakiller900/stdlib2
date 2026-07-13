@@ -1,4 +1,4 @@
-local table = require('__stdlib2__/stdlib/utils/table')
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
 
 local function merge_additional_data(additional_data_array, data)
     for _, new_data in pairs(additional_data_array) do

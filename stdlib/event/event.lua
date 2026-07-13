@@ -10,21 +10,20 @@
 -- This module does not have many of the multiplayer protections that `script.on_event` does.
 -- <br>Due to this, great care should be taken when registering events conditionally.
 -- </blockquote>
--- @module Event.Event
--- @usage local Event = require('__stdlib2__/stdlib/event/event')
-
-local config = require('__stdlib2__/stdlib/config')
-config.control = true
-
+--- @class StdLib.Event : StdLib.Core
+--- @usage local Event = require('__kry_stdlib__/stdlib/event/event')
 local Event = {
     __class = 'Event',
     registry = {}, -- Holds registered events
     custom_events = {}, -- Holds custom event ids
     stop_processing = {}, -- just has to be unique
-    Filters = require('__stdlib2__/stdlib/event/modules/event_filters'),
-    __index = require('__stdlib2__/stdlib/core')
+    Filters = require('__kry_stdlib__/stdlib/event/modules/event_filters'),
+    __index = require('__kry_stdlib__/stdlib/core') --[[ @as StdLib.Core ]]
 }
 setmetatable(Event, Event)
+
+local config = require('__kry_stdlib__/stdlib/config')
+config.control = true
 
 Event.options = {
     protected_mode = false,
@@ -41,7 +40,22 @@ Event.core_events = {
     load = 'on_load',
     configuration_changed = 'on_configuration_changed',
     init_and_config = { 'on_init', 'on_configuration_changed' },
-    init_and_load = { 'on_init', 'on_load' }
+    init_and_load = { 'on_init', 'on_load' },
+	on_created_entity = {
+		defines.events.on_built_entity,
+        defines.events.on_robot_built_entity,
+        defines.events.on_space_platform_built_entity,
+        defines.events.script_raised_built,
+        defines.events.script_raised_revive,
+        defines.events.on_entity_cloned
+	},
+	on_removed_entity = {
+		defines.events.on_player_mined_entity,
+        defines.events.on_robot_mined_entity,
+        defines.events.on_space_platform_mined_entity,
+        defines.events.script_raised_destroy,
+        defines.events.on_entity_died
+	}
 }
 
 Event.script = {
@@ -51,21 +65,27 @@ Event.script = {
     on_load = script.on_load,
     on_configuration_changed = script.on_configuration_changed,
     generate_event_name = script.generate_event_name,
-    get_event_handler = script.get_event_handler,
+	get_event_id = script.get_event_id,
+    get_event_handler = script.get_event_handler
 }
 
-local Type = require('__stdlib2__/stdlib/utils/type')
-local table = require('__stdlib2__/stdlib/utils/table')
+local Type = require('__kry_stdlib__/stdlib/utils/type') --[[@as StdLib.Utils.Type]]
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
 
 local assert, type, tonumber = assert, type, tonumber
 local event_names = table.invert(defines.events)
 
 if not config.skip_script_protections then -- Protections for post and pre registrations
     for _, define in pairs(defines.events) do
-        if Event.script.get_event_handler(define) then
+        if Event.script.get_event_handler(define--[[@as uint]]) then
             error('Detected attempt to add the STDLIB event module after using script.on_event')
         end
     end
+    --[[for name in pairs(Event.script) do
+        _G.script[name] = function()
+            error('Detected attempt to register an event using script.' .. name .. ' while using the STDLIB event system ')
+        end
+    end]]--
 end
 
 local bootstrap_events = {
@@ -81,6 +101,16 @@ local bootstrap_events = {
     end
 }
 
+-- Resolve named custom events/inputs to the numeric ID Factorio dispatches.
+-- Bootstrap event names remain strings because stdlib dispatches those itself.
+local function normalize_event_id(event_id)
+    if Type.String(event_id) and not bootstrap_events[event_id] then
+        return Event.script.get_event_id(event_id) or event_id
+    end
+
+    return event_id
+end
+
 local function valid_id(id)
     local id_type = type(id)
     return (id_type == 'number' or id_type == 'string'), 'Invalid Event Id, Must be string/int/defines.events, Passed in: ' .. type(id)
@@ -93,12 +123,6 @@ end
 local function id_to_name(name)
     return event_names[name] or table.invert(Event.custom_events)[name] or name or 'unknown'
 end
-
-local stupid_events = {
-    [defines.events.script_raised_revive] = 'entity',
-    [defines.events.script_raised_built] = 'entity',
-    [defines.events.on_entity_cloned] = 'destination'
-}
 
 --- Registers a handler for the given events.
 -- If a `nil` handler is passed, remove the given events and stop listening to them.
@@ -114,12 +138,12 @@ local stupid_events = {
 -- Event.register(-120, function() game.print('Every 120 ticks') end
 -- -- Function call chaining
 -- Event.register(event1, handler1).register(event2, handler2)
--- @param event_id (<span class="types">@{defines.events}, @{int}, @{string}, or {@{defines.events}, @{int}, @{string},...}</span>)
--- @tparam function handler the function to call when the given events are triggered
--- @tparam[opt=nil] function filter a function whose return determines if the handler is executed. event and pattern are passed into this
--- @tparam[opt=nil] mixed pattern an invariant that can be used in the filter function, passed as the second parameter to your filter
--- @tparam[opt=nil] table options a table of options that take precedence over the module options.
--- @return (<span class="types">@{Event}</span>) Event module object allowing for call chaining
+--- @param event_id defines.events|int|string|(defines.events|int|string)[]
+--- @param handler function the function to call when the given events are triggered
+--- @param filter function? [opt=nil] a function whose return determines if the handler is executed. event and pattern are passed into this
+--- @param pattern any? [opt=nil] an invariant that can be used in the filter function, passed as the second parameter to your filter
+--- @param options table? [opt=nil] a table of options that take precedence over the module options.
+--- @return StdLib.Event #Event module object allowing for call chaining
 function Event.register(event_id, handler, filter, pattern, options)
     assert(event_id, 'missing event_id argument')
     assert(Type.Function(handler), 'handler function is missing, use Event.remove to un register events')
@@ -129,13 +153,14 @@ function Event.register(event_id, handler, filter, pattern, options)
     options = setmetatable(options or {}, Event_options_meta)
 
     --Recursively handle event id tables
-    if Type.Table(event_id) then
+    if type(event_id)=="table" then
         for _, id in pairs(event_id) do
-            Event.register(id, handler)
+            Event.register(id, handler, filter, pattern, options)
         end
         return Event
     end
 
+	event_id = normalize_event_id(event_id)
     assert(valid_id(event_id), 'event_id is invalid')
 
     -- If the event_id has never been registered before make sure we call the correct script action to register
@@ -155,7 +180,7 @@ function Event.register(event_id, handler, filter, pattern, options)
             Event.script.on_event(event_id, Event.dispatch)
         elseif event_id < 0 then
             --Use negative values to register on_nth_tick
-            Event.script.on_nth_tick(math.abs(event_id)--[[@as uint]] , Event.dispatch)
+            Event.script.on_nth_tick(math.abs(event_id--[[@as uint]])--[[@as uint]] , Event.dispatch)
         end
     end
 
@@ -190,22 +215,23 @@ end
 -- @{LuaBootstrap.generate_event_name|script.generate_event_name} which is in <span class="types">@{int}</span>,
 -- and can be a custom input name which is in <span class="types">@{string}</span>.
 -- <p>The `event_id` parameter takes in either a single, multiple, or mixture of @{defines.events}, @{int}, and @{string}.
--- @param event_id (<span class="types">@{defines.events}, @{int}, @{string}, or {@{defines.events}, @{int}, @{string},...}</span>)
--- @tparam[opt] function handler the handler to remove, if not present remove all registered handlers for the event_id
--- @tparam[opt] function filter
--- @tparam[opt] mixed pattern
--- @return (<span class="types">@{Event}</span>) Event module object allowing for call chaining
+--- @param event_id defines.events|integer|string|table<defines.events|integer|string>
+--- @param handler? function [opt] the handler to remove, if not present remove all registered handlers for the event_id
+--- @param filter? function [opt]
+--- @param pattern any
+--- @return StdLib.Event #Event module object allowing for call chaining
 function Event.remove(event_id, handler, filter, pattern)
     assert(event_id, 'missing event_id argument')
 
     -- Handle recursion here
-    if Type.Table(event_id) then
+    if type(event_id)=="table" then
         for _, id in pairs(event_id) do
-            Event.remove(id, handler)
+            Event.remove(id, handler, filter, pattern)
         end
         return Event
     end
 
+	event_id = normalize_event_id(event_id)
     assert(valid_id(event_id), 'event_id is invalid')
 
     local registry = Event.registry[event_id]
@@ -270,7 +296,7 @@ function Event.remove(event_id, handler, filter, pattern)
                 Event.script.on_event(event_id, nil)
             elseif event_id < 0 then
                 -- Use negative values to remove on_nth_tick
-                Event.script.on_nth_tick(math.abs(event_id)--[[@as uint]] , nil)
+                Event.script.on_nth_tick(math.abs(event_id--[[@as uint]])--[[@as uint]] , nil)
             end
         elseif not found_something then
             log('Attempt to deregister already non-registered listener from event: ' .. event_id)
@@ -411,10 +437,16 @@ function Event.dispatch(event)
         event.define_name = event_names[event.name or '']
         event.options = event.options or {}
 
-        -- Some events are just stupid and need more help
-        if stupid_events[event.name] then
-            event.created_entity = event.created_entity or event.entity or event.destination
+        -- entity cloned is the only built event that does not return 'entity'
+        if event.name == defines.events.on_entity_cloned and event.destination then
+            event.entity = event.destination
         end
+		
+		-- built-in support for Even Pickier Dollies
+		if remote.interfaces["PickerDollies"] and event.moved_entity then
+			-- this line should only trigger on EPD events, which all contain moved_entity
+			event.entity = event.moved_entity
+		end
 
         for _, registered in ipairs(registry) do
             event.options = setmetatable(event.options, { __index = registered.options })
@@ -443,23 +475,23 @@ function Event.dispatch(event)
 end
 
 function Event.register_player(bool)
-    require('__stdlib2__/stdlib/event/player').register_events(bool)
+    require('__kry_stdlib__/stdlib/event/player').register_events(bool)
     return Event
 end
 
 function Event.register_force(bool)
-    require('__stdlib2__/stdlib/event/force').register_events(bool)
+    require('__kry_stdlib__/stdlib/event/force').register_events(bool)
     return Event
 end
 
 function Event.register_surface(bool)
-    require('__stdlib2__/stdlib/event/surface').register_events(bool)
+    require('__kry_stdlib__/stdlib/event/surface').register_events(bool)
     return Event
 end
 
 --- Retrieve or Generate an event_name and store it in Event.custom_events
--- @tparam string event_name the custom name for your event.
--- @treturn int the id associated with the event.
+--- @param event_name string the custom name for your event.
+--- @return int the id associated with the event.
 -- @usage
 -- Event.register(Event.generate_event_name("my_custom_event"), handler)
 function Event.generate_event_name(event_name)
@@ -494,6 +526,7 @@ end
 
 --- Get event handler.
 function Event.get_event_handler(event_id)
+	event_id = normalize_event_id(event_id)
     assert(valid_id(event_id), 'event_id is invalid')
     return {
         script = bootstrap_events[event_id] or (valid_event_id(event_id) and Event.script.get_event_handler(event_id)),
@@ -519,6 +552,6 @@ function Event.set_option(option, bool)
     return Event
 end
 
-Event.dump_data = require('__stdlib2__/stdlib/event/modules/dump_event_data')(Event, valid_event_id, id_to_name)
+Event.dump_data = require('__kry_stdlib__/stdlib/event/modules/dump_event_data')(Event, valid_event_id, id_to_name)
 
 return Event

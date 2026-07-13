@@ -1,10 +1,10 @@
 --- Category
--- @classmod Data.Category
-
+--- @class StdLib.Data.Category : StdLib.Data
+-- this placeholder does nothing
 local Category = {
     __class = 'Category',
-    __index = require('__stdlib2__/stdlib/data/data'),
-    __call = require('__stdlib2__/stdlib/data/data').__call
+    __index = require('__kry_stdlib__/stdlib/data/data') --[[@as StdLib.Data]],
+    __call = require('__kry_stdlib__/stdlib/data/data').__call
 }
 setmetatable(Category, Category)
 

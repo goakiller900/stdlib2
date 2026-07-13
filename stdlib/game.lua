@@ -1,64 +1,68 @@
 --- The game module.
--- @module Game
--- @usage local Game = require('__stdlib2__/stdlib/game')
-
+--- @class StdLib.Game : StdLib.Core
+--- @usage local Game = require('__kry_stdlib__/stdlib/game')
 local Game = {
     __class = 'Game',
-    __index = require('__stdlib2__/stdlib/core')
+    __index = require('__kry_stdlib__/stdlib/core') --[[@as StdLib.Core]]
 }
 setmetatable(Game, Game)
 local inspect = _ENV.inspect
 
 --- Return a valid player object from event, index, string, or userdata
--- @tparam string|number|LuaPlayer|event mixed
--- @treturn LuaPlayer a valid player or nil
+--- @param mixed string|number|LuaPlayer|anyevent
+--- @return LuaPlayer? #a valid player or nil
 function Game.get_player(mixed)
-    if type(mixed) == 'table' then
-        if mixed.player_index then
+	local type = type(mixed)
+    if type == 'table' or type == 'userdata' then
+		if mixed["object_name"] and mixed["object_name"]=="LuaPlayer" then
+			return mixed.valid and mixed --[[@as LuaPlayer]]
+        elseif mixed.player_index then
             return game.get_player(mixed.player_index)
-        elseif mixed.__self then
-            return mixed.valid and mixed
         end
     elseif mixed then
-        return game.get_player(mixed)
+        return game.get_player(mixed--[[@as string|number]])
     end
 end
 
 --- Return a valid force object from event, string, or userdata
--- @tparam string|LuaForce|event mixed
--- @treturn LuaForce a valid force or nil
+--- @param mixed string|LuaForce|anyevent
+--- @return LuaForce? #a valid force or nil
 function Game.get_force(mixed)
-    if type(mixed) == 'table' then
-        if mixed.__self then
-            return mixed and mixed.valid and mixed
+	local type = type(mixed)
+    if type == 'table' or type == 'userdata' then
+        if mixed["object_name"] and mixed["object_name"]=="LuaForce" then
+            return mixed and mixed.valid and mixed --[[@as LuaForce]]
         elseif mixed.force then
             return Game.get_force(mixed.force)
         end
     elseif type(mixed) == 'string' then
         local force = game.forces[mixed]
-        return (force and force.valid) and force
+        return (force and force.valid) and force --[[@as LuaForce|nil]]
     end
 end
 
+---@param mixed string|LuaSurface|anyevent
+---@return LuaSurface?
 function Game.get_surface(mixed)
-    if type(mixed) == 'table' then
-        if mixed.__self then
-            return mixed.valid and mixed
+    local type = type(mixed)
+    if type == 'table' or type == 'userdata' then
+		if mixed["object_name"] and mixed["object_name"]=="LuaSurface" then
+            return mixed.valid and mixed --[[@as LuaSurface]]
         elseif mixed.surface then
             return Game.get_surface(mixed.surface)
         end
     elseif mixed then
         local surface = game.surfaces[mixed]
-        return surface and surface.valid and surface
+        return surface and surface.valid and surface or nil
     end
 end
 
 --- Messages all players currently connected to the game.
 --> Offline players are not counted as having received the message.
 -- If no players exist msg is stored in the `storage._print_queue` table.
--- @tparam string msg the message to send to players
--- @tparam[opt] ?|nil|boolean condition the condition to be true for a player to be messaged
--- @treturn uint the number of players who received the message.
+--- @param msg string the message to send to players
+--- @param condition (fun(LuaPlayer):boolean)? [opt] the condition to be true for a player to be messaged
+--- @return uint #the number of players who received the message.
 function Game.print_all(msg, condition)
     local num = 0
     if #game.players > 0 then
@@ -72,16 +76,17 @@ function Game.print_all(msg, condition)
     else
         storage._print_queue = storage._print_queue or {}
         storage._print_queue[#storage._print_queue + 1] = msg
+		return 0
     end
 end
 
 --- Gets or sets data in the storage variable.
--- @tparam string sub_table the name of the table to use to store data.
--- @tparam[opt] mixed index an optional index to use for the sub_table
--- @tparam mixed key the key to store the data in
--- @tparam[opt] boolean set store the contents of value, when true return previously stored data
--- @tparam[opt] mixed value when set is true set key to this value, if not set and key is empty store this
--- @treturn mixed the chunk value stored at the key or the previous value
+--- @param sub_table string the name of the table to use to store data.
+--- @param index any an optional index to use for the sub_table
+--- @param key any the key to store the data in
+--- @param set boolean? [opt] store the contents of value, when true return previously stored data
+--- @param value any when set is true set key to this value, if not set and key is empty store this
+--- @return any #the chunk value stored at the key or the previous value
 function Game.get_or_set_data(sub_table, index, key, set, value)
     assert(type(sub_table) == 'string', 'sub_table must be a string')
     storage[sub_table] = storage[sub_table] or {}
@@ -106,27 +111,32 @@ function Game.get_or_set_data(sub_table, index, key, set, value)
 end
 
 function Game.write_mods()
-    game.write_file('Mods.lua', 'return ' .. inspect(script.active_mods))
+    helpers.write_file('Mods.lua', 'return ' .. inspect(script.active_mods))
 end
 
+---@deprecated not implemented --TODO Factorio 2.0
 function Game.write_statistics()
     local pre = 'Statistics/' .. game.tick .. '/'
     for _, force in pairs(game.forces) do
         local folder = pre .. force.name .. '/'
         for _, count_type in pairs { 'input_counts', 'output_counts' } do
-            game.write_file(folder .. 'pollution-' .. count_type .. '.json', game.table_to_json(game.pollution_statistics[count_type]))
-            game.write_file(folder .. 'item-' .. count_type .. '.json', game.table_to_json(force.item_production_statistics[count_type]))
-            game.write_file(folder .. 'fluid-' .. count_type .. '.json', game.table_to_json(force.fluid_production_statistics[count_type]))
-            game.write_file(folder .. 'kill-' .. count_type .. '.json', game.table_to_json(force.kill_count_statistics[count_type]))
-            game.write_file(folder .. 'build-' .. count_type .. '.json', game.table_to_json(force.entity_build_count_statistics[count_type]))
-        end
+			---@diagnostic disable: undefined-field
+            helpers.write_file(folder .. 'pollution-' .. count_type .. '.json', helpers.table_to_json(game.pollution_statistics[count_type]))
+            helpers.write_file(folder .. 'item-' .. count_type .. '.json', helpers.table_to_json(force.item_production_statistics[count_type]))
+            helpers.write_file(folder .. 'fluid-' .. count_type .. '.json', helpers.table_to_json(force.fluid_production_statistics[count_type]))
+            helpers.write_file(folder .. 'kill-' .. count_type .. '.json', helpers.table_to_json(force.kill_count_statistics[count_type]))
+            helpers.write_file(folder .. 'build-' .. count_type .. '.json', helpers.table_to_json(force.entity_build_count_statistics[count_type]))
+			---@diagnostic enable: undefined-field
+		end
     end
+	--TODO implement this
+	--game.get_pollution_statistics(x)
 end
 
 function Game.write_surfaces()
-    game.remove_path('surfaces')
+    helpers.remove_path('surfaces')
     for _, surface in pairs(game.surfaces) do
-        game.write_file('surfaces/' .. (surface.name or surface.index) .. '.lua', 'return ' .. inspect(surface.map_gen_settings))
+        helpers.write_file('surfaces/' .. (surface.name or surface.index) .. '.lua', 'return ' .. inspect(surface.map_gen_settings))
     end
 end
 

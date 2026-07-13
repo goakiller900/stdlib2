@@ -2,7 +2,7 @@
 -- This module registers events
 -- @module Event.Changes
 -- @usage
--- local Changes = require('__stdlib2__/stdlib/event/changes')
+-- local Changes = require('__kry_stdlib__/stdlib/event/changes')
 -- Changes.register('mod_versions', 'path_to_version_file')
 -- @usage
 -- -- version files should return a dictionary of functions indexed by version number.
@@ -13,9 +13,7 @@
 -- Changes.register('any-first', 'path_to_file_1')
 -- Changes.register('any-first', 'path_to_file_2')
 
-local Event = require('__stdlib2__/stdlib/event/event')
-
----@class Changes
+---@class SttLib.Event.Changes : StdLib.Core
 ---@field map_first table
 ---@field any_first table
 ---@field mod_first table
@@ -23,13 +21,14 @@ local Event = require('__stdlib2__/stdlib/event/event')
 ---@field mod_last table
 ---@field any_last table
 ---@field map_last table
----@field get_file_path function
 local Changes = {
     __class = 'Changes',
-    __index = require('__stdlib2__/stdlib/core'),
+    __index = require('__kry_stdlib__/stdlib/core')--[[@as StdLib.Core]],
     registered_for_events = false
 }
 setmetatable(Changes, Changes)
+
+local Event = require('__kry_stdlib__/stdlib/event/event') --[[@as StdLib.Event]]
 
 local inspect = _ENV.inspect
 
@@ -44,7 +43,7 @@ local inspect = _ENV.inspect
     old_version :: string: Old version of the mod. May be nil if the mod wasn't previously present (i.e. it was just added).
     new_version :: string: New version of the mod. May be nil if the mod is no longer present (i.e. it was just removed).
 --]]
-local table = require('__stdlib2__/stdlib/utils/table')
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
 
 local map_changes = {
     ['map_first'] = true,
@@ -143,11 +142,11 @@ end
 function Changes.dump_data()
     for change_type in pairs(map_changes) do
         if table.size(Changes[change_type]) > 0 then
-            game.write_file(Changes.get_file_path('Changes/' .. change_type .. '.lua'),
+            helpers.write_file(script.mod_name .. '/Changes/' .. change_type .. '.lua',
                 'return ' .. inspect(Changes[change_type], { longkeys = true, arraykeys = true }))
         end
     end
-    game.write_file(Changes.get_file_path('Changes/global.lua'), 'return ' .. inspect(storage._changes or nil, { longkeys = true, arraykeys = true }))
+    helpers.write_file(script.mod_name .. '/Changes/storage.lua', 'return ' .. inspect(storage._changes or nil, { longkeys = true, arraykeys = true }))
 end
 
 return Changes

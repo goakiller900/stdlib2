@@ -1,9 +1,13 @@
+error("deprecated. if you need this the make a request.")
+--- @diagnostic disable
+--- not used internally
+---------------------------------------------------------------------------------------------------
 --- A double-linked list implementation
--- @classmod LinkedList
+--- @class StdLib.LinkedList
 
-local Core = require('__stdlib2__/stdlib/core')
-local table = require('__stdlib2__/stdlib/utils/table')
-local Is = require('__stdlib2__/stdlib/utils/is')
+local Core = require('__kry_stdlib__/stdlib/core') --[[@as StdLib.Core]]
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
+local Is = require('__kry_stdlib__/stdlib/utils/is')
 
 -- dumb shallow copy suitable for cloning instance metatables in subclasses
 local _mtcopy = function(self)

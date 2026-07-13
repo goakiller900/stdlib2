@@ -1,21 +1,18 @@
 --- For working with mod configurations.
--- @module Misc.Config
--- @usage require('__stdlib2__/stdlib/config/config')
-
----
--- @tfield function new
--- @tfield function get
--- @tfield function set
--- @tfield function delete
--- @tfield function is_set
--- @table Config
+--- @class StdLib.Misc.Config : StdLib.Core
+--- @usage require('__kry_stdlib__/stdlib/config/config')
+--- @field new function
+--- @field get function
+--- @field set function
+--- @field delete function
+--- @field is_set function
 local M = {
     __class = 'Config',
-    __index = require('__stdlib2__/stdlib/core')
+    __index = require('__kry_stdlib__/stdlib/core')
 }
 setmetatable(M, M)
-local table = require('__stdlib2__/stdlib/utils/table')
-local string = require('__stdlib2__/stdlib/utils/string')
+local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
+local string = require('__kry_stdlib__/stdlib/utils/string') --[[@as StdLib.Utils.String]]
 
 -----------------------------------------------------------------------
 --Setup repeated code for use in sub functions here
@@ -32,33 +29,33 @@ local testReservedCharacters = function(path)
 end
 
 --- Creates a new Config object to ease the management of a config table.
--- @tparam table config_table the config table to manage
--- @treturn Config the Config object to manage the config table
+--- @param config_table table the config table to manage
+--- @return StdLib.Misc.Config #the Config object to manage the config table
 --
--- @usage --[Use a storage table for config that persists across game save/loads]
--- CONFIG = Config.new(storage.testtable)
+-- @usage --[Use a global table for config that persists across game save/loads]
+-- CONFIG = Config.new(global.testtable)
 --
 -- @usage --[You can also create a temporary scratch pad config]
 -- CONFIG = Config.new({}) -- Temporary scratch pad
 --
 -- @usage --[Setting data in Config]
--- CONFIG = Config.new(storage.testtable)
+-- CONFIG = Config.new(global.testtable)
 -- CONFIG.set("your.path.here", "myvalue")
 --
 -- @usage --[Getting data out of Config]
--- CONFIG = Config.new(storage.testtable)
+-- CONFIG = Config.new(global.testtable)
 -- my_data = CONFIG.get("your.path.here")
 --
 -- @usage --[Getting data out of Config with a default to use if path is not found in Config]
--- CONFIG = Config.new(storage.testtable)
+-- CONFIG = Config.new(global.testtable)
 -- my_data = CONFIG.get("your.path.here", "Your Default here")
 --
 -- @usage --[Deleting a path from Config]
--- CONFIG = Config.new(storage.testtable)
+-- CONFIG = Config.new(global.testtable)
 -- CONFIG.delete("your.path.here")
 --
 -- @usage --[Checking if a path exists in Config]
--- CONFIG = Config.new(storage.testtable)
+-- CONFIG = Config.new(global.testtable)
 -- CONFIG.is_set("your.path.here")
 function M.new(config_table)
     if not config_table then
@@ -75,9 +72,9 @@ function M.new(config_table)
     local Config = {}
 
     --- Get a stored config value.
-    -- @tparam string path the variable to retrieve
-    -- @tparam[opt] Mixed default value to be used if path is nil
-    -- @treturn Mixed value at path or nil if not found and no default given
+    --- @param path string the variable to retrieve
+    --- @param default any value to be used if path is nil
+    --- @return any #value at path or nil if not found and no default given
     function Config.get(path, default)
         if type(path) ~= 'string' or path == '' then
             error('path is invalid', 2)
@@ -116,9 +113,9 @@ function M.new(config_table)
     end
 
     --- Set a stored config value.
-    -- @tparam string path the config path to set
-    -- @tparam ?|nil|Mixed data the value to set the path to. If *nil*, it behaves identical to @{delete|Config.delete()}
-    -- @treturn uint 0 on failure or the number of affected paths on success
+    --- @param path string the config path to set
+    --- @param data any? the value to set the path to. If *nil*, it behaves identical to @{delete|Config.delete()}
+    --- @return uint 0 on failure or the number of affected paths on success
     function Config.set(path, data)
         if type(path) ~= 'string' or path == '' then
             error('path is invalid', 2)
@@ -149,8 +146,8 @@ function M.new(config_table)
     end
 
     --- Delete a stored config value.
-    -- @tparam string path the config path to delete
-    -- @treturn uint 0 on failure or the number of affected paths on success
+    --- @param path string the config path to delete
+    --- @return uint 0 on failure or the number of affected paths on success
     function Config.delete(path)
         if type(path) ~= 'string' or string == '' then
             error('path is invalid', 2)
@@ -184,8 +181,8 @@ function M.new(config_table)
     end
 
     --- Test the existence of a stored config value.
-    -- @tparam string path the config path to test
-    -- @treturn boolean true if the value exists, false otherwise
+    --- @param path string the config path to test
+    --- @return boolean true if the value exists, false otherwise
     function Config.is_set(path)
         if type(path) ~= 'string' or path == '' then
             error('path is invalid', 2)
