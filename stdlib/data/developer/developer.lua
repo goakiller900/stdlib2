@@ -1,7 +1,9 @@
---- Developer
--- @script Developer
+local Data = require('__kry_stdlib__/stdlib/data/data') --[[@as StdLib.Data]]
 
-local Data = require('__stdlib2-continued__/stdlib/data/data')
+--- Developer
+--- @class StdLib.Developer : StdLib.Data
+
+local Data = require('__kry_stdlib__/stdlib/data/data')
 
 local Developer = {
     __index = Data
@@ -21,10 +23,10 @@ local function make_no_controls()
 end
 
 --- Make entities for easier mod testing.
--- @tparam string name The name of your mod
+-- @param name string The name of your mod
 -- @usage
 -- --data.lua
--- local Developer = require('__stdlib2-continued__/stdlib/data/develper/developer')
+-- local Developer = require('__kry_stdlib__/stdlib/data/develper/developer')
 -- Developer.make_test_entities()
 function Developer.make_test_entities()
     log('Making developer debug entities')

@@ -1,7 +1,7 @@
 --- Extends Lua 5.2 table.
--- @module Utils.table
+--- @class StdLib.Utils.Table
 -- @see table
--- @usage local table = require('__stdlib2-continued__/stdlib/utils/table')
+--- @usage local table = require('__kry_stdlib__/stdlib/utils/table') --[[@as StdLib.Utils.Table]]
 local Table = {}
 
 Table.remove = table.remove
@@ -21,10 +21,10 @@ for k, v in pairs(table) do if not Table[k] then Table[k] = v end end
 -- table.map(a, function(v) return v * 10 end) --produces: { 10, 20, 30, 40, 50 }
 -- @usage a = {1, 2, 3, 4, 5}
 -- table.map(a, function(v, k, x) return v * k + x end, 100) --produces { 101, 104, 109, 116, 125}
--- @tparam table tbl the table to be mapped to the transform
--- @tparam function func the function to transform values
--- @param[opt] ... additional arguments passed to the function
--- @treturn table a new table containing the keys and mapped values
+--- @param tbl table the table to be mapped to the transform
+--- @param func function the function to transform values
+--- @param ... any [opt] additional arguments passed to the function
+--- @return table a new table containing the keys and mapped values
 function Table.map(tbl, func, ...)
     local new_tbl = {}
     for k, v in pairs(tbl) do new_tbl[k] = func(v, k, ...) end
@@ -38,10 +38,10 @@ end
 -- table.filter(a, function(v) return v % 2 == 0 end) --produces: { 2, 4 }
 -- @usage a = {1, 2, 3, 4, 5}
 -- table.filter(a, function(v, k, x) return k % 2 == 1 end) --produces: { 1, 3, 5 }
--- @tparam table tbl the table to be filtered
--- @tparam function func the function to filter values
--- @param[opt] ... additional arguments passed to the function
--- @treturn table a new table containing the filtered key-value pairs
+--- @param tbl table the table to be filtered
+--- @param func function the function to filter values
+--- @param ... any [opt] additional arguments passed to the function
+--- @return table #a new table containing the filtered key-value pairs
 function Table.filter(tbl, func, ...)
     local new_tbl = {}
     local add = #tbl > 0
@@ -64,13 +64,14 @@ end
 -- table.find(a, function(v) return v % 2 == 0 end) --produces: 2
 -- @usage a = {1, 2, 3, 4, 5}
 -- table.find(a, function(v, k, x) return k % 2 == 1 end) --produces: 1
--- @tparam table tbl the table to be searched
--- @tparam function func the function to use to search for any matching element
--- @param[opt] ... additional arguments passed to the function
--- @treturn ?|nil|Mixed the first found value, or nil if none was found
+--- @param tbl table the table to be searched
+--- @param func function the function to use to search for any matching element
+--- @param ... any [opt] additional arguments passed to the function
+--- @return any? #the first found value, or nil if none was
+--- @return any? #the key of first found value, or nil if none was found
 function Table.find(tbl, func, ...)
     for k, v in pairs(tbl) do if func(v, k, ...) then return v, k end end
-    return nil
+    return nil,nil
 end
 
 --- Given a candidate search function, iterates over the table, calling the function
@@ -81,10 +82,10 @@ end
 -- table.any(a, function(v) return v % 2 == 0 end) --produces: true
 -- @usage a = {1, 2, 3, 4, 5}
 -- table.any(a, function(v, k, x) return k % 2 == 1 end) --produces: true
--- @tparam table tbl the table to be searched
--- @tparam function func the function to use to search for any matching element
--- @param[opt] ... additional arguments passed to the function
--- @treturn boolean true if an element was found, false if none was found
+--- @param tbl table the table to be searched
+--- @param func function the function to use to search for any matching element
+--- @param ... any [opt] additional arguments passed to the function
+--- @return boolean #true if an element was found, false if none was found
 function Table.any(tbl, func, ...)
     return Table.find(tbl, func, ...) ~= nil
 end
@@ -93,10 +94,10 @@ end
 -- for each element in the table, and returns true if search function returned true
 -- for all items in the table.
 -- Passes the index as second argument to the function.
--- @tparam table tbl the table to be searched
--- @tparam function func the function to used to search
--- @param[opt] ... additional arguments passed to the search function
--- @treturn boolean true if all elements in the table return truthy
+--- @param tbl table the table to be searched
+--- @param func function the function to used to search
+--- @param ... any [opt] additional arguments passed to the search function
+--- @return boolean #true if all elements in the table return truthy
 function Table.all(tbl, func, ...)
     for k, v in pairs(tbl) do if not func(v, k, ...) then return false end end
     return true
@@ -108,22 +109,31 @@ end
 -- @usage
 -- a = {10, 20, 30, 40}
 -- table.each(a, function(v) game.print(v) end) --prints 10, 20, 30, 40, 50
--- @tparam table tbl the table to be iterated
--- @tparam function func the function to apply to elements
--- @param[opt] ... additional arguments passed to the function
--- @treturn table the table where the given function has been applied to its elements
+--- @param tbl table the table to be iterated
+--- @param func function the function to apply to elements
+--- @param ... any [opt] additional arguments passed to the function
+--- @return table #the table where the given function has been applied to its elements
 function Table.each(tbl, func, ...)
     for k, v in pairs(tbl) do if func(v, k, ...) then break end end
     return tbl
+end
+
+--- Returns true if the unkeyed array contains the given value.
+-- @param tbl table? the array to search
+-- @param value any the value to look for
+-- @return boolean #true if the value exists in the array
+function Table.contains(tbl, value)
+    assert(type(tbl) == "table", "Expected first argument to be a table")
+    return util.contains_value(tbl, value)
 end
 
 --- Returns a new array that is a one-dimensional recursive flattening of the given array.
 -- For every element that is an array, extract its elements into the new array.
 -- <p>The optional level argument determines the level of recursion to flatten.
 -- > This function flattens an integer-indexed array, but not an associative array.
--- @tparam array tbl the array to be flattened
--- @tparam[opt] uint level recursive levels, or no limit to recursion if not supplied
--- @treturn array a new array that represents the flattened contents of the given array
+--- @param tbl any[] the array to be flattened
+--- @param level uint? [opt] recursive levels, or no limit to recursion if not supplied
+--- @return any[] #a new array that represents the flattened contents of the given array
 function Table.flatten(tbl, level)
     local flattened = {}
     Table.each(tbl, function(value)
@@ -145,15 +155,15 @@ function Table.flatten(tbl, level)
 end
 
 --- Given an array, returns the first element or nil if no element exists.
--- @tparam array tbl the array
--- @treturn ?|nil|Mixed the first element
+--- @param tbl array the array
+--- @return any? #the first element
 function Table.first(tbl)
     return tbl[1]
 end
 
 --- Given an array, returns the last element or nil if no elements exist.
--- @tparam array tbl the array
--- @treturn ?|nil|Mixed the last element or nil
+--- @param tbl array the array
+--- @return any? #the last element or nil
 function Table.last(tbl)
     local size = #tbl
     if size == 0 then return nil end
@@ -161,8 +171,8 @@ function Table.last(tbl)
 end
 
 --- Given an array of only numeric values, returns the minimum or nil if no element exists.
--- @tparam {number,...} tbl the array with only numeric values
--- @treturn ?|nil|number the minimum value
+--- @param tbl number[] the array with only numeric values
+--- @return nil|number #the minimum value
 function Table.min(tbl)
     if #tbl == 0 then return nil end
 
@@ -172,8 +182,8 @@ function Table.min(tbl)
 end
 
 ---Given an array of only numeric values, returns the maximum or nil if no element exists.
--- @tparam {number,...} tbl the array with only numeric values
--- @treturn ?|nil|number the maximum value
+--- @param tbl number[] the array with only numeric values
+--- @return nil|number #the maximum value
 function Table.max(tbl)
     if #tbl == 0 then return nil end
 
@@ -183,8 +193,8 @@ function Table.max(tbl)
 end
 
 --- Given an array of only numeric values, return the sum of all values, or 0 for empty arrays.
--- @tparam {number,...} tbl the array with only numeric values
--- @treturn number the sum of the numbers or zero if the given array was empty
+--- @param tbl number[] the array with only numeric values
+--- @return number #the sum of the numbers or zero if the given array was empty
 function Table.sum(tbl)
     local sum = 0
     for _, num in pairs(tbl) do sum = sum + num end
@@ -192,18 +202,18 @@ function Table.sum(tbl)
 end
 
 --- Given an array of only numeric values, returns the average or nil if no element exists.
--- @tparam {number,...} tbl the array with only numeric values
--- @treturn ?|nil|number the average value
+--- @param tbl number[] the array with only numeric values
+--- @return nil|number #the average value
 function Table.avg(tbl)
     local cnt = #tbl
     return cnt ~= 0 and Table.sum(tbl) / cnt or nil
 end
 
 --- Return a new array slice.
--- @tparam array tbl the table to slice
--- @tparam[opt=1] number start
--- @tparam[opt=#tbl] number stop stop at this index, use negative to stop from end.
--- @usage local tab = { 10, 20, 30, 40, 50}
+--- @param tbl array the table to slice
+--- @param start number? [opt=1]
+--- @param stop number? [opt=#tbl] stop at this index, use negative to stop from end.
+--- @usage local tab = { 10, 20, 30, 40, 50}
 -- slice(tab, 2, -2) --returns { 20, 30, 40 }
 function Table.slice(tbl, start, stop)
     local res = {}
@@ -231,11 +241,11 @@ end
 -- end
 -- some_func(1,2) -- returns 2
 -- some_func(1,2,{option1=true}) -- returns 1
--- @tparam table tblA first table
--- @tparam table tblB second table
--- @tparam[opt=false] boolean array_merge set to true to merge the tables as an array or false for an associative array
--- @tparam[opt=false] boolean raw use rawset for associated array
--- @treturn array|table an array or an associated array where tblA and tblB have been merged
+--- @param tblA table first table
+--- @param tblB table second table
+--- @param array_merge boolean? [opt=false] set to true to merge the tables as an array or false for an associative array
+--- @param raw boolean? [opt=false] use rawset for associated array
+--- @return array|table an array or an associated array where tblA and tblB have been merged
 function Table.merge(tblA, tblB, array_merge, raw)
     if not tblB then return tblA end
     if array_merge then
@@ -272,9 +282,9 @@ end
 -- local b = {one = Z, two = B}
 -- local merged = table.dictionary_merge(tbl_a, tbl_b)
 -- --merged = {one = A, two = B}
--- @tparam table tbl_a
--- @tparam table tbl_b
--- @treturn table with a and b merged together
+--- @param tbl_a table
+--- @param tbl_b table
+--- @return table with a and b merged together
 function Table.dictionary_merge(tbl_a, tbl_b)
     local meta_a = getmetatable(tbl_a)
     local meta_b = getmetatable(tbl_b)
@@ -291,10 +301,10 @@ end
 
 --- Compares 2 tables for inner equality.
 -- Modified from factorio/data/core/lualib/util.lua
--- @tparam table t1
--- @tparam table t2
--- @tparam[opt=false] boolean ignore_mt ignore eq metamethod
--- @treturn boolean if the tables are the same
+--- @param t1 table
+--- @param t2 table
+--- @param ignore_mt boolean? [opt=false] ignore eq metamethod
+--- @return boolean if the tables are the same
 -- @author Sparr, Nexela, luacode.org
 function Table.deep_compare(t1, t2, ignore_mt)
     local ty1, ty2 = type(t1), type(t2)
@@ -311,7 +321,6 @@ function Table.deep_compare(t1, t2, ignore_mt)
         if v2 == nil or not Table.deep_compare(v1, v2) then return false end
     end
     for k in pairs(t2) do if t1[k] == nil then return false end end
-
     return true
 end
 Table.compare = Table.deep_compare
@@ -320,8 +329,8 @@ Table.compare = Table.deep_compare
 -- copied from factorio/data/core/lualib/util.lua
 -- @usage local copy = table.deep_copy[data.raw.["stone-furnace"]["stone-furnace"]]
 -- -- returns a copy of the stone furnace entity
--- @tparam table object the table to copy
--- @treturn table a copy of the table
+--- @param object table the table to copy
+--- @return table a copy of the table
 function Table.deep_copy(object)
     local lookup_table = {}
 
@@ -347,8 +356,8 @@ Table.deepcopy = Table.deep_copy
 -- internal table refs are also deepcopy. The resulting table should
 -- @usage local copy = table.fullcopy[data.raw.["stone-furnace"]["stone-furnace"]]
 -- -- returns a deepcopy of the stone furnace entity with no internal table references.
--- @tparam table object the table to copy
--- @treturn table a copy of the table
+--- @param object table the table to copy
+--- @return table a copy of the table
 function Table.full_copy(object)
     local lookup_table = {}
 
@@ -373,8 +382,8 @@ Table.fullcopy = Table.full_copy
 --- Creates a flexible deep copy of an object, recursively copying sub-objects
 -- @usage local copy = table.flexcopy(data.raw.["stone-furnace"]["stone-furnace"])
 -- -- returns a copy of the stone furnace entity
--- @tparam table object the table to copy
--- @treturn table a copy of the table
+--- @param object table the table to copy
+--- @return table a copy of the table
 function Table.flex_copy(object)
     local lookup_table = {}
 
@@ -400,10 +409,10 @@ end
 Table.flexcopy = Table.flex_copy
 
 --- Returns a copy of all of the values in the table.
--- @tparam table tbl the table to copy the keys from, or an empty table if tbl is nil
--- @tparam[opt] boolean sorted whether to sort the keys (slower) or keep the random order from pairs()
--- @tparam[opt] boolean as_string whether to try and parse the values as strings, or leave them as their existing type
--- @treturn array an array with a copy of all the values in the table
+--- @param tbl table the table to copy the keys from, or an empty table if tbl is nil
+--- @param sorted boolean? [opt] whether to sort the keys (slower) or keep the random order from pairs()
+--- @param as_string boolean? [opt] whether to try and parse the values as strings, or leave them as their existing type
+--- @return array an array with a copy of all the values in the table
 function Table.values(tbl, sorted, as_string)
     if not tbl then return {} end
     local value_set = {}
@@ -436,10 +445,10 @@ function Table.values(tbl, sorted, as_string)
 end
 
 --- Returns a copy of all of the keys in the table.
--- @tparam table tbl the table to copy the keys from, or an empty table if tbl is nil
--- @tparam[opt] boolean sorted whether to sort the keys (slower) or keep the random order from pairs()
--- @tparam[opt] boolean as_string whether to try and parse the keys as strings, or leave them as their existing type
--- @treturn array an array with a copy of all the keys in the table
+--- @param tbl table the table to copy the keys from, or an empty table if tbl is nil
+--- @param sorted boolean? [opt] whether to sort the keys (slower) or keep the random order from pairs()
+--- @param as_string boolean? [opt] whether to try and parse the keys as strings, or leave them as their existing type
+--- @return array an array with a copy of all the keys in the table
 function Table.keys(tbl, sorted, as_string)
     if not tbl then return {} end
     local key_set = {}
@@ -472,24 +481,24 @@ function Table.keys(tbl, sorted, as_string)
 end
 
 --- Removes keys from a table by setting the values associated with the keys to nil.
--- @usage local a = {1, 2, 3, 4}
+--- @usage local a = {1, 2, 3, 4}
 -- table.remove_keys(a, {1,3}) --returns {nil, 2, nil, 4}
--- @usage local b = {k1 = 1, k2 = 'foo', old_key = 'bar'}
+--- @usage local b = {k1 = 1, k2 = 'foo', old_key = 'bar'}
 -- table.remove_keys(b, {'old_key'}) --returns {k1 = 1, k2 = 'foo'}
--- @tparam table tbl the table to remove the keys from
--- @tparam {Mixed,...} keys an array of keys that exist in the given table
--- @treturn table tbl without the specified keys
+--- @param tbl table the table to remove the keys from
+--- @param keys any[] an array of keys that exist in the given table
+--- @return table tbl without the specified keys
 function Table.remove_keys(tbl, keys)
     for i = 1, #keys do tbl[keys[i]] = nil end
     return tbl
 end
 
 --- Returns the number of keys in a table, if func is passed only count keys when the function is true.
--- @tparam table tbl to count keys
--- @tparam[opt] function func to increment counter
--- @param[optchain] ... additional arguments passed to the function
--- @treturn number The number of keys matching the function or the number of all keys if func isn't passed
--- @treturn number The total number of keys
+--- @param tbl table to count keys
+--- @param func function? [opt] to increment counter
+--- @param ... any [opt] additional arguments passed to the function
+--- @return number The number of keys matching the function or the number of all keys if func isn't passed
+--- @return number The total number of keys
 -- @usage local a = { 1, 2, 3, 4, 5}
 -- table.count_keys(a) -- produces: 5, 5
 -- @usage local a = {1, 2, 3, 4, 5}
@@ -515,8 +524,8 @@ end
 -- table.invert(a) --returns {'foo' = k1, 'bar' = k2}
 -- @usage local b = {k1 = 'foo', k2 = 'bar', k3 = 'bar'}
 -- table.invert(b) --returns {'foo' = k1, 'bar' = ?}
--- @tparam table tbl the table to invert
--- @treturn table a new table with inverted mapping
+--- @param tbl table the table to invert
+--- @return table a new table with inverted mapping
 function Table.invert(tbl)
     local inverted = {}
     for k, v in pairs(tbl) do inverted[v] = k end
@@ -531,44 +540,132 @@ end
 
 --- Return the size of a table using the factorio built in table_size function
 -- @function size
--- @tparam table table to use
--- @treturn int size of the table
+-- @param table table to use
+-- @return int size of the table
 Table.size = _ENV.table_size or _size
 
+--- Converts a simple array to a dictionary, or returns the table as-is if it's already a dictionary
 --- For all string or number values in an array map them to a value = value table
--- @usage local a = {"v1", "v2"}
--- table.array_to_bool(a) -- return {["v1"] = "v1", ["v2"]= "v2"}
--- @tparam table tbl the table to convert
--- @tparam[opt=false] boolean as_bool map to true instead of value
--- @treturn table the converted table
+--- @usage local a = {"v1", "v2"}
+--- table.array_to_bool(a) -- return {["v1"] = "v1", ["v2"]= "v2"}
+--- @param tbl table the table to convert
+--- @param as_bool boolean? [opt=false] map to true instead of value
+--- @return table the converted table or the original table
 function Table.array_to_dictionary(tbl, as_bool)
-    local new_tbl = {}
-    for _, v in ipairs(tbl) do
-        if type(v) == 'string' or type(v) == 'number' then new_tbl[v] = as_bool and true or v end
+    if Table.is_array(tbl) then
+        local new_tbl = {}
+        for _, v in ipairs(tbl) do
+            if type(v) == "string" or type(v) == "number" then
+                new_tbl[v] = as_bool and true or v
+            end
+        end
+        return new_tbl
+    else
+        return tbl
     end
-    return new_tbl
 end
 
 -- Returns an array of unique values from tbl
--- @tparam table tbl
--- @treturn table an array of unique values.
+--- @param tbl table
+--- @return table an array of unique values.
 function Table.unique_values(tbl)
     return Table.keys(Table.invert(tbl))
 end
 
 --- Does the table contain any elements
--- @tparam table tbl
--- @treturn boolean
+--- @param tbl table
+--- @return boolean
 function Table.is_empty(tbl)
     return _ENV.table_size and _ENV.table_size(tbl) == 0 or next(tbl) == nil
 end
 
 --- Clear all elements in a table
--- @tparam table tbl the table to clear
--- @treturn table the cleared table
+--- @param tbl table the table to clear
+--- @return table the cleared table
 function Table.clear(tbl)
     for k in pairs(tbl) do tbl[k] = nil end
     return tbl
+end
+
+--- Inserts a string into a table before the first occurrence of a specified string.
+--- If the specified string is not found, the new string is appended to the end of the table.
+--- @param tbl table the table to insert into.
+--- @param before string the string before which the new value should be inserted.
+--- @param value string the string to insert.
+function Table.insert_string(tbl, before, value)
+    assert(type(before) == "string", "Expected second argument to be a string")
+    assert(type(value) == "string", "Expected third argument to be a string")
+
+    for i, v in ipairs(tbl) do
+        if v == before then
+            table.insert(tbl, i, value)
+            return tbl
+        end
+    end
+    table.insert(tbl, value)
+    return tbl
+end
+
+--- Removes the first occurrence of a specified string from a table.
+--- If the string is not found, the table remains unchanged.
+--- @param tbl table the table to remove from.
+--- @param target string the string to remove.
+function Table.remove_string(tbl, target)
+    assert(type(target) == "string", "Expected second argument to be a string")
+
+	for i, v in ipairs(tbl) do
+		if v == target then
+			table.remove(tbl, i)
+			return tbl
+		end
+	end
+	return tbl
+end
+
+--- Scales a number or a table of numbers by a given scale factor.
+--- If the input is a number, returns the scaled number.
+--- If the input is a table, returns a deep copy of the table with all numeric values scaled.
+--- @param object number|table the number or table to scale
+--- @param scale number the scale factor
+--- @return number|table #the scaled number or table
+function Table.scale(object, scale)
+    -- Walk table and scale values contained within
+    local function scale_subtable(obj, factor)
+        for k, v in pairs(obj) do
+            if type(v) == "table" then
+                scale_subtable(v, factor)
+            elseif type(v) == "number" then
+                obj[k] = v * factor
+            end
+        end
+    end
+
+    -- Check if object is a number
+    if type(object) == "number" then
+        return object * scale
+    -- Else object is a table
+    elseif type(object) == "table" then
+        -- Break reference, work on local copy
+        object = table.deepcopy(object)
+        -- Recursively call scale_subtable
+        scale_subtable(object, scale)
+        return object
+    end
+end
+
+--- Checks if the table is a simple array (sequential integer keys starting at 1).
+--- For example: {"a", "b", "c"} is valid, but {value1="a"} or {[1]="a",[3]="b"} are not.
+--- @param tbl table
+--- @return boolean
+function Table.is_array(tbl)
+    if type(tbl) ~= "table" then return false end
+    local n = #tbl
+    for k in pairs(tbl) do
+        if type(k) ~= "number" or k < 1 or k > n or k % 1 ~= 0 then
+            return false
+        end
+    end
+    return true
 end
 
 return Table

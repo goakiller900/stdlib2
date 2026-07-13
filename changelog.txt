@@ -1,46 +1,209 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.1.1
-Date: 2026-07-12
+Version: 2.2.5
+Date: July 13, 2026
+  Info:
+    - Folded in several minor bugfixes from goakiller900's stdlib2 continuation project
   Bugfixes:
     - Migrated script-output helpers from removed game methods to the Factorio 2.1 helpers API.
     - Updated diagnostic storage dumps from the removed global table to storage.
     - Updated statistics exports to use the Factorio 2.1 per-surface statistics methods.
----------------------------------------------------------------------------------------------------
-Version: 2.1.0
-Date: 2026-07-12
-  Changes:
-    - Renamed the mod to stdlib2-continued for a new community-maintained Mod Portal release.
-    - Updated the minimum supported Factorio version to 2.1.
-    - Rewrote all cross-mod import paths for the new internal mod name.
-  Bugfixes:
-    - Updated Recipe:change_category to use the Factorio 2.1 categories array.
     - Updated LuaObject detection for userdata-based Factorio objects.
     - Made recipe copying tolerate recipes without a results table.
 ---------------------------------------------------------------------------------------------------
-Version: 2.0.2
-Date: 2024-00-00
+Version: 2.2.4
+Date: July 11, 2026
+  Changes:
+    - Replaced Table.contains with a link to core's util.contains_value; functionally identical.
+    - Updated Event.register/on_event and Event.remove to preserve filter, pattern, and options data.
+    - Added get_event_id to Event.script.
+  Major Features:
+    - Added some generic spread-across-ticks logic, specifically intended for use with entities.
+      Also added setting to control number of entities checked per tick (for mods using this feature)
+      Made a strong attempt to minimize ups impact; under default settings, time usage should remain between 0.100 and 0.500, even with several thousands of entities utilizing the functionality.
+      This partially depends on how the source mod utilizes this functionality.
+      This list currently only includes Heat Inserter and Logistics Reactor Next v2
+    - Added wrapper for Things API, to shorthand remote calls and add some basic validity checking.
+    - Added support for Even Pickier Dollies within Event script.
+      If an event is registered that contains moved_entity, maps it to event.entity field as well.
+    - Added on_created_entity to Event.core_events
+      Registers to on_built_entity, on_robot_built_entity, on_space_platform_built_entity, script_raised_built, script_raised_revive, on_entity_cloned
+    - Added on_removed_entity to Event.core_events
+      Registers to on_player_mined_entity, on_robot_mined_entity, on_space_platform_mined_entity, script_raised_destroy, on_entity_died
+  Bugfixes:
+    - Fixed mod-setting script to allow writes during settings phase 
+---------------------------------------------------------------------------------------------------
+Version: 2.2.3
+Date: July 2, 2026
   Info:
-    - To be added...
+    - Added slightly better error handling for failed data:copy (hopefully!)
+  Minor Features:
+    - Added new item-group and item-subgroup.lua
+      Written entirely for the purposes of counting visible entries in the Factoriopedia
+    - Added Entity:has_collision_layer(layer)
+    - Added Recipe:get_main_product()
+    - Added Data:set_subgroup and set_order
+      Both simply wrap around Data:subgroup_order, with additional validity checks 
+    - Added Data:append_order() which simply appends a string to self.order
+---------------------------------------------------------------------------------------------------
+Version: 2.2.2
+Date: June 30, 2026
+  Bugfixes:
+    - Fixed Recipe:add_category and remove_category using incorrectly named table
+  Minor Features:
+    - Added Entity:add_category and remove_category (for use with crafting_categories)
+    - Added Entity:add_categories and remove_categories (for use with multiple crafting_categories)
+---------------------------------------------------------------------------------------------------
+Version: 2.2.1
+Date: June 29, 2026
+  Minor Features:
+    - Added Data:change_type()
+---------------------------------------------------------------------------------------------------
+Version: 2.2.0
+Date: June 23, 2026
+  Info:
+    - Updated to Factorio 2.1
+  Changes:
+    - Replaced Recipe:set/change_category with add_category and remove_category
+      These functions utilize the new crafting_categories table
+    - Reformmatted some recipe functions for consistency
+  Minor Features:
+    - Added Table.contains
+  Bugfixes:
+    - Fixed circuit connector not being rescaled properly (incorrect fields were being rescaled)
+---------------------------------------------------------------------------------------------------
+Version: 2.1.1
+Date: May 26, 2026
+  Info:
+    - Fixed year in date of the previous changelog
+    - Removed some leftover css files
+  Minor Features:
+    - Added space-connection and space-location scripts (under stdlib/data/)
+      Similar to planet script, mainly just a shorthand wrapper for functions contained in the space script
+    - Added mod-setting script (under stdlib/data/)
+      Can be used during startup or data phase to interact with mod settings
+      Primary function is to shorthand checks for setting existing, and grabbing value
+      Includes force_hidden(value) function, to mark as hidden and set a forced_value
+---------------------------------------------------------------------------------------------------
+Version: 2.1.0
+Date: January 4, 2026
+  Info:
+    - Potentially resolved long standing issues between PyPostProcessing and Stdlib since 2.0
+  Changes:
+    - Updated Recipe:add_ingredient to only accept ingredient tables (previously allowed name/count)
+---------------------------------------------------------------------------------------------------
+Version: 2.0.12
+Date: December 26, 2025
+  Minor Features:
+    - Added Recipe:set_results, set_ingredients, get_result_amount, get_ingredient_amount
+---------------------------------------------------------------------------------------------------
+Version: 2.0.11
+Date: November 23, 2025
+  Minor Features:
+    - Added Recipe:set_result_amount, multiply_result, multiply_results.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.10
+Date: November 17, 2025
+  Minor Features:
+    - Added Recipe:set_ingredient_amount, to directly modify ingredient counts.
+  Changes:
+    - Removed hardcoded 0.75 reduction when applying rescale_entity with squeak through functionality.
+      Added optional shrink_value to Entity:rescale_entity, defaults to 0.75 when undefined.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.9
+Date: October 12, 2025
+  Minor Features:
+    - Added Space:create_space_connection to manually create connections between planet/space locations.
+      Attempts to generate a merged asteroid table based on origin and destination spawn definitions.
+      May not work exactly as intended, but maybe the randomness is more interesting for asteroids.
+  Bugfixes:
+    - Corrected year in several previous changelog entries.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.8
+Date: October 2, 2025
+  Minor Features:
+    - Added Technology:get_recipes and Recipe:get_technologies
+    - Updated Recipe:copy_unlock to use the new functions
+      Recipe:copy_unlock now adds unlocks to all matching technologies, instead of only the first.
+    - Updated Data:replace_icon to remove the icons field when only string is provided
+  Bugfixes:
+    - Fixed table:remove_string to always return the table, even if string search fails.
+  Changes:
+    - Disabled unnecessary log messages when running is_valid on non-existent data types.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.7
+Date: September 14, 2025
+  Minor Features:
+    - Added new EquipmentGrid class with functions to update grid size and equipment categories.
+      Specifically included: update_size, add_categories, and remove_categories.
+    - Added Table:is_array to check if table is either a simple array or a key-value pair.
+  Changes:
+    - Updated remove_string and insert_string to also return the newly modified table.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.6
+Date: March 30, 2025
+  Bugfixes:
+    - Removed requirement for a valid recipe when using Technology:remove_unlock.
+      Allows use of remove_unlock after the base recipe has been removed.
+  Minor Features:
+    - Added remove_string function to utils/table.lua
+      Similar logic but simply removes the table entry instead.
+    - Added Technology:add_unlock, providing the same functionality as Recipe:add_unlock
+---------------------------------------------------------------------------------------------------
+Version: 2.0.5
+Date: March 30, 2025
+  Bugfixes:
+    - Fixed copy_cost checking the wrong table before copying.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.4
+Date: May 7, 2025
+  Bugfixes:
+    - Updated multiply_cost to log missing unit field instead of causing an error on startup.
+      Now returns false instead of self on failed multiply.
+    - Updated copy_cost to log missing unit field instead of silently copying nil value.
+      Now returns false instead of self on failed copy.
+  Minor Features:
+    - Added Recipe:multiply_ingredient (multiplies single ingredient specified by name)
+---------------------------------------------------------------------------------------------------
+Version: 2.0.3
+Date: April 6, 2025
+  Changes:
+    - Data:copy applies new_name to main_product if detected
+  Minor Features:
+    - Added Data:replace_name, which utilizes Data:copy to rename a data object
+    - Added Table.scale (originally provided by Kirazy for use with mini machines)
+      Takes a table of numbers and scales them by the value provided.
+    - Added Entity:rescale_entity function (originally provided by Kirazy for use with mini machines)
+      Applies scale value to a list of allowed fields within the entity (to rescale the size)
+      Ignored fields, such as fluid_boxes and energy_source, need to be modified separately.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.2
+Date: March 30, 2025
+  Changes:
+    - Added some detail to error messages for data:copy function.
+  Minor Features:
+    - Added insert_string function to utils/table.lua
+      Simply searches for a string in a simple array, and inserts a string value just before it.
+      Similar to the basic table.insert function, but uses string instead of key value.
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.1
-Date: 2024-10-29
-  Changes:
-    - Removed unnecessary folders from the public release.
----------------------------------------------------------------------------------------------------
-Version: 2.0.2
-Date: 2024-00-00
-  Info:
-    - To be added...
----------------------------------------------------------------------------------------------------
-Version: 2.0.1
-Date: 2024-10-29
-  Changes:
-    - Removed unnecessary folders from the public release.
+Date: December 16, 2024
+  Bugfixes:
+    - Reverted breaking changes within entity.lua (namely Entity:change_lab_inputs)
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
-Date: 2024-10-29
-  Changes:
-    - Factorio 2.0 compatible
+Date: December 15, 2024
+  Info:
+    - Comments for almost all functionaility updated to use EmmyLua instead of ldoc.
+      These comment updates were all graciously provided by Kuxynator.
+  Minor Features:
+    - Added Technology:replace_prereq (shorthand for remove_prereq and add_prereq in one command)
+  Bugfixes:
+    - Incorporated various fixes graciously provided by Kuxynator, including but not limited to:
+      direction, orientation, color, train, recipe, and game
+      replaced all instances of game.write_file and game.remove_path with helpers instead
+      line optimizations with data:get_field and data:get_icons
+      line optimizations with resource:get_resource_types
+    - Incorporated M.Userdata fix by hgschmie in utils/is.lua
 ---------------------------------------------------------------------------------------------------
 Version: 1.4.8
 Date: 2022-11-27
