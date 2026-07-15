@@ -28,14 +28,14 @@ end
 ---@param mixed string|LuaForce|anyevent
 ---@return LuaForce? #a valid force or nil
 function Game.get_force(mixed)
-	local type = type(mixed)
-    if type == 'table' or type == 'userdata' then
+	local mixed_type = type(mixed)
+    if mixed_type == 'table' or mixed_type == 'userdata' then
         if mixed["object_name"] and mixed["object_name"]=="LuaForce" then
             return mixed and mixed.valid and mixed --[[@as LuaForce]]
         elseif mixed.force then
             return Game.get_force(mixed.force)
         end
-    elseif type(mixed) == 'string' then
+    elseif mixed_type == 'string' then
         local force = game.forces[mixed]
         return (force and force.valid) and force --[[@as LuaForce|nil]]
     end
